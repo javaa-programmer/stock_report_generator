@@ -5,7 +5,8 @@ import stockreportgeneratorhelper as srgh
 from dailyreportgenerator import DailyReportGenerator
 import directorypaths as dp
 from zipfile import ZipFile
-import shutil, os
+import shutil
+import os
 
 
 # Generates the weekly reports
@@ -23,14 +24,16 @@ def generate_monthly_reports():
 # Unzip the file, copy to input directory
 # and delete the unused files.
 def prepare_file():
-    with ZipFile('D:\\personal\\trading\\input\\temp\\PR020519.zip', 'r') as zipObj:
-        zipObj.extractall('D:\\personal\\trading\\input\\temp')
 
-    file_name = dp.input_file_path + 'temp\\' + 'Pd' + srgh.get_current_date() + '.csv'
-    shutil.copy(file_name, 'D:\\personal\\trading\\input')
+    temp_file_name = dp.temp_file_path + 'PR' + srgh.current_date_str + '.zip'
+    with ZipFile(temp_file_name, 'r') as zipObj:
+        zipObj.extractall(dp.temp_file_path)
 
-    for filename in os.listdir(dp.input_file_path + 'temp\\'):
-        file_path = os.path.join(dp.input_file_path + 'temp\\', filename)
+    file_name = dp.temp_file_path + 'Pd' + srgh.get_current_date() + '.csv'
+    shutil.copy(file_name, dp.input_file_path)
+
+    for filename in os.listdir(dp.temp_file_path):
+        file_path = os.path.join(dp.temp_file_path, filename)
         try:
             shutil.rmtree(file_path)
         except OSError:
@@ -49,12 +52,12 @@ if not is_holiday:
     prepare_file()
 
     # Update the master data excel
-    # mdfu = MasterDataFileUpdater(dp.master_data_file_name, 'Details', srgh.current_date_str)
-    # mdfu.update_master_data()
+    mdfu = MasterDataFileUpdater(dp.master_data_file_name, 'Details', srgh.current_date_str)
+    mdfu.update_master_data()
 
     # update the master report
-    # mru = MasterReportUpdater(dp.master_data_file_name, 'Details', srgh.current_date_str)
-    # mru.update_master_report()
+    mru = MasterReportUpdater(dp.master_data_file_name, 'Details', srgh.current_date_str)
+    mru.update_master_report()
 
     # Generate Daily Reports
     drg = DailyReportGenerator(dp.master_data_file_name, 'Details', srgh.current_date_str)

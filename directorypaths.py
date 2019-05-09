@@ -2,6 +2,7 @@
 input_file_path = 'D:\\personal\\trading\\input\\'
 output_file_path = 'D:\\personal\\trading\\reports\\'
 other_file_path = 'D:\\personal\\trading\\others\\'
+temp_file_path = 'D:\\personal\\trading\\input\\temp\\'
 
 master_data_file_name = output_file_path + 'Stock_Historical_Price.xlsx'
 master_report_name = output_file_path + 'Master_Price_Report.xlsx'
