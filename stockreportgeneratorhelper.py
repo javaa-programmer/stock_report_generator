@@ -243,9 +243,15 @@ def check_new_week(current_date):
 
 # Returns the last business day offset by given no of days
 def offset_business_day(current_date, offset_days):
-    previous_date = current_date - timedelta(days=offset_days)
-    while check_holiday(previous_date):
-        previous_date = previous_date - timedelta(days=offset_days)
+
+    curr_offset_days = 0
+
+    while curr_offset_days != offset_days:
+        previous_date = current_date - timedelta(days=1)
+        while check_holiday(previous_date):
+            previous_date = previous_date - timedelta(days=1)
+        current_date = previous_date
+        curr_offset_days = curr_offset_days + 1
     return previous_date
 
 
@@ -261,3 +267,9 @@ volatility_header = ['SYMBOL', 'Name', 'Previous Close Price', 'Open Price', 'Hi
 volatility_header_updated = {'SYMBOL': 'SYMBOL', 'NAME': 'Name', 'PREV_CL_PR': 'Previous Close Price',
                              'OPEN_PRICE': 'Open Price', 'HIGH_PRICE': 'High Price', 'LOW_PRICE': 'Low Price',
                              'CLOSE_PRICE': 'Close Price'}
+
+cons_increased_header1 = {'PREV_CL_PR': 'Previous Closing Price', 'CLOSE_PRICE_x': 'Closing Price',
+                          'NET_TRDQTY_x': 'Volume', 'CLOSE_PRICE_y': 'Closing Price', 'NET_TRDQTY_y': 'Volume',
+                          'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume'}
+
+cons_increased_header2 = {' ': 'SYMBOL', 'TRADE_DATE': 'Name'}

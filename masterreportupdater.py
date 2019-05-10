@@ -14,7 +14,6 @@ class MasterReportUpdater:
         self.input_file_name = input_file_name
         self.sheet_name = sheet_name
         self.current_date_str = current_date_str
-        print(type(self.current_date_str))
         self.current_date = srgh.create_date(self.current_date_str)
         self.report_sheet_name = srgh.create_sheet_name(self.current_date_str)
         self.sheet_exist = srgh.check_sheet_exist(dp.master_report_name, self.report_sheet_name)
