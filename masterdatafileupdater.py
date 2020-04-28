@@ -16,6 +16,8 @@ class MasterDataFileUpdater:
 
     # Update the master data excel
     def update_master_data(self):
+
+        print("Generating Report for ", srgh.gl_formatted_date.date())
         # Create the input file name
         input_file_name = dp.input_file_path + 'Pd' + self.current_date + '.csv'
 

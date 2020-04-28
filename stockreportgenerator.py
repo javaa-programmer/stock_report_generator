@@ -51,6 +51,10 @@ if not is_holiday:
     # and delete the unused files.
     prepare_file()
 
+    # Set the flags and Unzip the file, copy to input directory
+    # and delete the unused files.
+    srgh.set_app_process_flags(srgh.gl_formatted_date)
+
     # Update the master data excel
     mdfu = MasterDataFileUpdater(dp.master_data_file_name, 'Details', srgh.current_date_str)
     mdfu.update_master_data()
@@ -60,8 +64,8 @@ if not is_holiday:
     mru.update_master_report()
 
     # Generate Daily Reports
-    drg = DailyReportGenerator(dp.master_data_file_name, 'Details', srgh.current_date_str)
-    drg.generate_daily_reports()
+    #drg = DailyReportGenerator(dp.master_data_file_name, 'Details', srgh.current_date_str)
+    #drg.generate_daily_reports()
 
     # Generate Weekly Reports
     # generate_weekly_reports()

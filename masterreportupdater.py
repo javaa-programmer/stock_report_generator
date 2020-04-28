@@ -119,7 +119,7 @@ class MasterReportUpdater:
         mru = MasterReportUpdater(self.input_file_name, self.sheet_name, self.current_date_str)
         updated_record_set = mru.update_week_month_year()
         final_record_set = mru.calculate_month_weekly_high_low(updated_record_set,
-                                                               srgh.create_date(self.current_date_str))
+                                                              srgh.create_date(self.current_date_str))
         date_wise_record_set = mru.update_date_wise_record(self.input_file_name, dp.master_report_name,
                                                            srgh.create_date(self.current_date_str), final_record_set,
                                                            self.current_date)
@@ -152,6 +152,7 @@ class MasterReportUpdater:
 
         return curr_week_data
 
+
     # Calculate the weekly High, Low and Monthly High and Low for new sheet.
     # If sheet already exist for any month, do nothing
     def calculate_month_weekly_high_low(self, df_scrip_list, current_date):
@@ -168,7 +169,12 @@ class MasterReportUpdater:
 
         last_week_high_price = {}
         for index, row in selected_fields_weekly_high.iterrows():
-            key = row.SYMBOL + str(row.WEEK + 1) + str(row.YEAR)
+
+            temp_week = row.WEEK
+            if dp.is_first_day_year and temp_week == 52:
+                temp_week = 0
+
+            key = row.SYMBOL + str(temp_week + 1) + str(row.YEAR)
             last_week_high_price.update({key: row.HIGH_PRICE})
 
         for index, row in selected_fields_weekly_high.iterrows():
@@ -178,14 +184,19 @@ class MasterReportUpdater:
         updated_record_set_weekly_high = pd.merge(df_scrip_list, selected_fields_weekly_high,
                                               on=['SYMBOL', 'SERIES', 'WEEK', 'YEAR'])
 
-        # Calculate Weekly High Price
+        # Calculate Weekly Low Price
         weekly_low_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'WEEK', 'YEAR'])["LOW_PRICE"].idxmin()]
         selected_fields_weekly_low = weekly_low_price[['SYMBOL', 'SERIES', 'WEEK', 'YEAR', 'LOW_PRICE']]
 
         # last_week_low_price
         last_week_low_price = {}
         for index, row in selected_fields_weekly_low.iterrows():
-            key = row.SYMBOL + str(row.WEEK + 1) + str(row.YEAR)
+
+            temp_week = row.WEEK
+            if dp.is_first_day_year and temp_week == 52:
+                temp_week = 0
+
+            key = row.SYMBOL + str(temp_week + 1) + str(row.YEAR)
             last_week_low_price.update({key: row.LOW_PRICE})
 
         for index, row in selected_fields_weekly_low.iterrows():
@@ -202,7 +213,12 @@ class MasterReportUpdater:
         # last_month_high_price
         last_month_high_price = {}
         for index, row in selected_fields_monthly_high.iterrows():
-            key = row.SYMBOL + str(row.MONTH + 1) + str(row.YEAR)
+
+            temp_month = row.MONTH
+            if dp.is_first_day_year and temp_month == 12:
+                temp_month = 0
+
+            key = row.SYMBOL + str(temp_month + 1) + str(row.YEAR)
             last_month_high_price.update({key: row.HIGH_PRICE})
 
         for index, row in selected_fields_monthly_high.iterrows():
@@ -219,7 +235,12 @@ class MasterReportUpdater:
         # last_month_low_price
         last_month_low_price = {}
         for index, row in selected_fields_monthly_high.iterrows():
-            key = row.SYMBOL + str(row.MONTH + 1) + str(row.YEAR)
+
+            temp_month = row.MONTH
+            if dp.is_first_day_year and temp_month == 12:
+                temp_month = 0
+
+            key = row.SYMBOL + str(temp_month + 1) + str(row.YEAR)
             last_month_low_price.update({key: row.LOW_PRICE})
 
         for index, row in selected_fields_monthly_high.iterrows():
@@ -244,6 +265,7 @@ class MasterReportUpdater:
                                            'WE_LOW_PRICE']]
 
         return fl_record_set
+
 
     # Rename the newly generated columns once the columns are added for run date
     def rename_date_wise_column(self, existing_header_values):
