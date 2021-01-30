@@ -64,8 +64,8 @@ if not is_holiday:
     mru.update_master_report()
 
     # Generate Daily Reports
-    #drg = DailyReportGenerator(dp.master_data_file_name, 'Details', srgh.current_date_str)
-    #drg.generate_daily_reports()
+    drg = DailyReportGenerator(dp.master_data_file_name, 'Details', srgh.current_date_str)
+    drg.generate_daily_reports()
 
     # Generate Weekly Reports
     # generate_weekly_reports()
