@@ -38,13 +38,20 @@ class DailyReportGenerator:
     # or decreased three consecutive days.
     def generate_trending_scrip_list(self, current_date, report_name):
         master_data = pd.read_excel(self.input_file_name, self.data_sheet_name)
+        DailyReportGenerator.generate_three_cons_report(self, current_date, report_name)
+        DailyReportGenerator.generate_seven_cons_report(self, master_data, current_date, report_name)
+
+    # Three consecutive days
+    def generate_three_cons_report(self, current_date, report_name):
+        master_data = pd.read_excel(self.input_file_name, self.data_sheet_name)
 
         to_date = srgh.create_date(srgh.current_date_str)
         from_date = srgh.offset_business_day(current_date, 2)
+        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, frequency=3)
 
         increased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
-                                  (master_data['TRADE_DATE'] >= from_date) &
-                                  (master_data['CLOSE_PRICE'] >= master_data['PREV_CL_PR'])]
+                                           (master_data['TRADE_DATE'] >= from_date) &
+                                           (master_data['CLOSE_PRICE'] >= master_data['PREV_CL_PR'])]
 
         increased_price_data['freq'] = increased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(deep=True)
         increased_price_data = increased_price_data[(increased_price_data['freq'] == 3)].copy(deep=True)
@@ -110,6 +117,89 @@ class DailyReportGenerator:
         DailyReportGenerator.update_decr_scrip_list(self,temp_dr_df, sheet.max_row + 3, report_name)
 
         DailyReportGenerator.format_cons_increase_report = staticmethod(
+            DailyReportGenerator.format_cons_decrease_report)
+        DailyReportGenerator.format_cons_decrease_report(self, sheet.max_row + 2, report_name)
+
+    # Seven consecutive days
+    def generate_seven_cons_report(self, master_data, current_date, report_name):
+        to_date = srgh.create_date(srgh.current_date_str)
+        from_date = srgh.offset_business_day(current_date, 6)
+        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, frequency=7)
+
+    # fetch_cons_records
+    def generate_consecutive_records(self, master_data, from_date, to_date, frequency):
+
+        print(f'From Date: {from_date}')
+        print(f'To Date: {to_date}')
+        print(f'Frequency: {frequency}')
+        increased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
+                                           (master_data['TRADE_DATE'] >= from_date) &
+                                           (master_data['CLOSE_PRICE'] >= master_data['PREV_CL_PR'])]
+
+        increased_price_data['freq'] = increased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(deep=True)
+        increased_price_data = increased_price_data[(increased_price_data['freq'] == frequency)].copy(deep=True)
+
+        increased_price_data = increased_price_data[['SYMBOL','NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
+        temp_df = increased_price_data[(increased_price_data['TRADE_DATE'] == from_date)]
+
+        decreased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
+                                           (master_data['TRADE_DATE'] >= from_date) &
+                                           (master_data['CLOSE_PRICE'] <= master_data['PREV_CL_PR'])]
+
+        decreased_price_data['freq_dr'] = decreased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(
+            deep=True)
+        decreased_price_data = decreased_price_data[(decreased_price_data['freq_dr'] == frequency)].copy(deep=True)
+
+        decreased_price_data = decreased_price_data[
+            ['SYMBOL', 'NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
+        temp_dr_df = decreased_price_data[(decreased_price_data['TRADE_DATE'] == from_date)]
+
+        app_date = from_date
+        while app_date < to_date:
+            app_date = app_date + timedelta(days=1)
+            while srgh.check_holiday(app_date):
+                app_date = app_date + timedelta(days=1)
+
+            temp_df1 = increased_price_data[(increased_price_data['TRADE_DATE'] == app_date)]
+            temp_df1 = temp_df1[['SYMBOL','NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
+
+            temp_dr_df1 = decreased_price_data[(decreased_price_data['TRADE_DATE'] == app_date)]
+            temp_dr_df1 = temp_dr_df1[['SYMBOL', 'NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
+
+            try:
+                temp_df = pd.merge(temp_df, temp_df1, left_on = ['SYMBOL','NAME'], right_on = ['SYMBOL','NAME'])
+                temp_df.rename(columns=srgh.cons_increased_header1, inplace=True)
+
+                temp_dr_df = pd.merge(temp_dr_df, temp_dr_df1, left_on=['SYMBOL', 'NAME'], right_on=['SYMBOL', 'NAME'])
+                temp_dr_df.rename(columns=srgh.cons_increased_header1, inplace=True)
+
+            except IndexError:
+                temp_df = temp_df if not temp_df.empty else temp_df1
+                temp_dr_df = temp_dr_df if not temp_dr_df.empty else temp_dr_df1
+
+            while srgh.check_holiday(app_date):
+                app_date = app_date + timedelta(days=1)
+        temp_df.drop(columns=['TRADE_DATE'], inplace=True)
+        temp_dr_df.drop(columns=['TRADE_DATE'], inplace=True)
+
+        book = load_workbook(report_name)
+        writer = pd.ExcelWriter(report_name, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        temp_df.to_excel(writer, "Trendies Technical - I", startrow=2, index=False)
+        writer.save()
+        DailyReportGenerator.format_cons_increase_report = staticmethod(
+            DailyReportGenerator.format_cons_increase_report)
+        DailyReportGenerator.format_cons_increase_report(self, report_name)
+
+        book = load_workbook(report_name)
+        sheet = book['Trendies Technical - I']
+
+        DailyReportGenerator.update_decr_scrip_list = staticmethod(
+            DailyReportGenerator.update_decr_scrip_list)
+        DailyReportGenerator.update_decr_scrip_list(self, temp_dr_df, sheet.max_row + 3, report_name)
+
+        DailyReportGenerator.format_cons_decrease_report = staticmethod(
             DailyReportGenerator.format_cons_decrease_report)
         DailyReportGenerator.format_cons_decrease_report(self, sheet.max_row + 2, report_name)
 
