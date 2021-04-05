@@ -6,6 +6,7 @@ from openpyxl import load_workbook
 import numpy as np
 from datetime import timedelta
 
+
 class DailyReportGenerator:
 
     def __init__(self, input_file_name, data_sheet_name, current_date_str):
@@ -34,6 +35,10 @@ class DailyReportGenerator:
         DailyReportGenerator.generate_trending_scrip_list = staticmethod(DailyReportGenerator.generate_trending_scrip_list)
         DailyReportGenerator.generate_trending_scrip_list(self, current_date, report_name)
 
+        DailyReportGenerator.generate_trending_scrip_list_2 = staticmethod(DailyReportGenerator.generate_trending_scrip_list_2)
+        DailyReportGenerator.generate_trending_scrip_list_2(self, current_date, report_name)
+
+
     # Generate the report for the shares whose close price is increased
     # or decreased three consecutive days.
     def generate_trending_scrip_list(self, current_date, report_name):
@@ -47,112 +52,53 @@ class DailyReportGenerator:
 
         to_date = srgh.create_date(srgh.current_date_str)
         from_date = srgh.offset_business_day(current_date, 2)
-        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, frequency=3)
-
-        increased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
-                                           (master_data['TRADE_DATE'] >= from_date) &
-                                           (master_data['CLOSE_PRICE'] >= master_data['PREV_CL_PR'])]
-
-        increased_price_data['freq'] = increased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(deep=True)
-        increased_price_data = increased_price_data[(increased_price_data['freq'] == 3)].copy(deep=True)
-
-        increased_price_data = increased_price_data[['SYMBOL','NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
-        temp_df = increased_price_data[(increased_price_data['TRADE_DATE'] == from_date)]
-
-        decreased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
-                                           (master_data['TRADE_DATE'] >= from_date) &
-                                           (master_data['CLOSE_PRICE'] <= master_data['PREV_CL_PR'])]
-
-        decreased_price_data['freq_dr'] = decreased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(
-            deep=True)
-        decreased_price_data = decreased_price_data[(decreased_price_data['freq_dr'] == 3)].copy(deep=True)
-
-        decreased_price_data = decreased_price_data[
-            ['SYMBOL', 'NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
-        temp_dr_df = decreased_price_data[(decreased_price_data['TRADE_DATE'] == from_date)]
-
-        app_date = from_date
-        while app_date < to_date:
-            app_date = app_date + timedelta(days=1)
-            while srgh.check_holiday(app_date):
-                app_date = app_date + timedelta(days=1)
-
-            temp_df1 = increased_price_data[(increased_price_data['TRADE_DATE'] == app_date)]
-            temp_df1 = temp_df1[['SYMBOL','NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
-
-            temp_dr_df1 = decreased_price_data[(decreased_price_data['TRADE_DATE'] == app_date)]
-            temp_dr_df1 = temp_dr_df1[['SYMBOL', 'NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
-
-            try:
-                temp_df = pd.merge(temp_df, temp_df1, left_on = ['SYMBOL','NAME'], right_on = ['SYMBOL','NAME'])
-                temp_df.rename(columns=srgh.cons_increased_header1, inplace=True)
-
-                temp_dr_df = pd.merge(temp_dr_df, temp_dr_df1, left_on=['SYMBOL', 'NAME'], right_on=['SYMBOL', 'NAME'])
-                temp_dr_df.rename(columns=srgh.cons_increased_header1, inplace=True)
-
-            except IndexError:
-                temp_df = temp_df if not temp_df.empty else temp_df1
-                temp_dr_df = temp_dr_df if not temp_dr_df.empty else temp_dr_df1
-
-            while srgh.check_holiday(app_date):
-                app_date = app_date + timedelta(days=1)
-        temp_df.drop(columns=['TRADE_DATE'], inplace=True)
-        temp_dr_df.drop(columns=['TRADE_DATE'], inplace=True)
-
-        book = load_workbook(report_name)
-        writer = pd.ExcelWriter(report_name, engine='openpyxl')
-        writer.book = book
-        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
-        temp_df.to_excel(writer, "Trendies Technical - I", startrow=2, index=False)
-        writer.save()
-        DailyReportGenerator.format_cons_increase_report = staticmethod(
-            DailyReportGenerator.format_cons_increase_report)
-        DailyReportGenerator.format_cons_increase_report(self, report_name)
-
-        book = load_workbook(report_name)
-        sheet = book['Trendies Technical - I']
-
-        DailyReportGenerator.update_decr_scrip_list = staticmethod(
-            DailyReportGenerator.update_decr_scrip_list)
-        DailyReportGenerator.update_decr_scrip_list(self,temp_dr_df, sheet.max_row + 3, report_name)
-
-        DailyReportGenerator.format_cons_increase_report = staticmethod(
-            DailyReportGenerator.format_cons_decrease_report)
-        DailyReportGenerator.format_cons_decrease_report(self, sheet.max_row + 2, report_name)
+        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 3, True,
+                                                          'Scrips with Price Increased Three Consecutive Session')
+        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 3, False,
+                                                          'Scrips with Price Decreased Three Consecutive Session')
 
     # Seven consecutive days
     def generate_seven_cons_report(self, master_data, current_date, report_name):
         to_date = srgh.create_date(srgh.current_date_str)
         from_date = srgh.offset_business_day(current_date, 6)
-        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, frequency=7)
+        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 7, True,
+                                                          'Scrips with Price Increased Seven Consecutive Session')
+        DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 7, False,
+                                                          'Scrips with Price Decreased Seven Consecutive Session')
 
     # fetch_cons_records
-    def generate_consecutive_records(self, master_data, from_date, to_date, frequency):
+    def generate_consecutive_records(self, master_data, from_date, to_date, report_name, frequency, is_increased,
+                                     header_msg):
 
-        print(f'From Date: {from_date}')
-        print(f'To Date: {to_date}')
-        print(f'Frequency: {frequency}')
-        increased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
+        temp_df = DailyReportGenerator.generate_consecutive_increased_record(self, master_data, from_date, to_date,
+                                                                             report_name, frequency, is_increased)
+        # check of Trendies Technical - I sheet exists
+        sheet_exists = srgh.check_sheet_exist(report_name, "Trendies Technical - I")
+        if not sheet_exists:
+            DailyReportGenerator.create_trending_technical_1(self, report_name, "Trendies Technical - I", temp_df,
+                                                             header_msg)
+        else:
+            DailyReportGenerator.update_trending_technical_1(self, report_name, "Trendies Technical - I", from_date,
+                                                             temp_df, header_msg, frequency, is_increased)
+
+    # Generate Consecutive Increased Records
+    def generate_consecutive_increased_record(self, master_data, from_date, to_date, report_name, frequency,
+                                              is_increased):
+
+        if is_increased:
+            price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
                                            (master_data['TRADE_DATE'] >= from_date) &
                                            (master_data['CLOSE_PRICE'] >= master_data['PREV_CL_PR'])]
+        else:
+            price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
+                                               (master_data['TRADE_DATE'] >= from_date) &
+                                               (master_data['CLOSE_PRICE'] <= master_data['PREV_CL_PR'])]
 
-        increased_price_data['freq'] = increased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(deep=True)
-        increased_price_data = increased_price_data[(increased_price_data['freq'] == frequency)].copy(deep=True)
+        price_data['freq'] = price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(deep=True)
+        price_data = price_data[(price_data['freq'] == frequency)].copy(deep=True)
 
-        increased_price_data = increased_price_data[['SYMBOL','NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
-        temp_df = increased_price_data[(increased_price_data['TRADE_DATE'] == from_date)]
-
-        decreased_price_data = master_data[(master_data['TRADE_DATE'] <= to_date) &
-                                           (master_data['TRADE_DATE'] >= from_date) &
-                                           (master_data['CLOSE_PRICE'] <= master_data['PREV_CL_PR'])]
-
-        decreased_price_data['freq_dr'] = decreased_price_data.groupby('SYMBOL')['SYMBOL'].transform('count').copy(
-            deep=True)
-        decreased_price_data = decreased_price_data[(decreased_price_data['freq_dr'] == frequency)].copy(deep=True)
-
-        decreased_price_data = decreased_price_data[
-            ['SYMBOL', 'NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
-        temp_dr_df = decreased_price_data[(decreased_price_data['TRADE_DATE'] == from_date)]
+        price_data = price_data[['SYMBOL', 'NAME', 'TRADE_DATE', 'PREV_CL_PR', 'CLOSE_PRICE', 'NET_TRDQTY']].copy(deep=True)
+        temp_df = price_data[(price_data['TRADE_DATE'] == from_date)]
 
         app_date = from_date
         while app_date < to_date:
@@ -160,38 +106,38 @@ class DailyReportGenerator:
             while srgh.check_holiday(app_date):
                 app_date = app_date + timedelta(days=1)
 
-            temp_df1 = increased_price_data[(increased_price_data['TRADE_DATE'] == app_date)]
-            temp_df1 = temp_df1[['SYMBOL','NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
-
-            temp_dr_df1 = decreased_price_data[(decreased_price_data['TRADE_DATE'] == app_date)]
-            temp_dr_df1 = temp_dr_df1[['SYMBOL', 'NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
+            temp_df1 = price_data[(price_data['TRADE_DATE'] == app_date)]
+            temp_df1 = temp_df1[['SYMBOL', 'NAME', 'CLOSE_PRICE', 'NET_TRDQTY']]
 
             try:
-                temp_df = pd.merge(temp_df, temp_df1, left_on = ['SYMBOL','NAME'], right_on = ['SYMBOL','NAME'])
-                temp_df.rename(columns=srgh.cons_increased_header1, inplace=True)
-
-                temp_dr_df = pd.merge(temp_dr_df, temp_dr_df1, left_on=['SYMBOL', 'NAME'], right_on=['SYMBOL', 'NAME'])
-                temp_dr_df.rename(columns=srgh.cons_increased_header1, inplace=True)
-
+                temp_df = pd.merge(temp_df, temp_df1, left_on=['SYMBOL', 'NAME'], right_on=['SYMBOL', 'NAME'])
+                if frequency == 3:
+                    temp_df.rename(columns=srgh.cons_increased_header3, inplace=True)
+                if frequency == 7:
+                    temp_df.rename(columns=srgh.cons_increased_header7, inplace=True)
             except IndexError:
                 temp_df = temp_df if not temp_df.empty else temp_df1
-                temp_dr_df = temp_dr_df if not temp_dr_df.empty else temp_dr_df1
 
             while srgh.check_holiday(app_date):
                 app_date = app_date + timedelta(days=1)
         temp_df.drop(columns=['TRADE_DATE'], inplace=True)
-        temp_dr_df.drop(columns=['TRADE_DATE'], inplace=True)
+        return temp_df
 
+    # Create trending technical 1 sheet
+    def create_trending_technical_1(self, report_name, sheet_name, temp_df, header_msg):
         book = load_workbook(report_name)
         writer = pd.ExcelWriter(report_name, engine='openpyxl')
         writer.book = book
         writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
         temp_df.to_excel(writer, "Trendies Technical - I", startrow=2, index=False)
         writer.save()
-        DailyReportGenerator.format_cons_increase_report = staticmethod(
-            DailyReportGenerator.format_cons_increase_report)
-        DailyReportGenerator.format_cons_increase_report(self, report_name)
+        DailyReportGenerator.format_first_set_record = staticmethod(
+            DailyReportGenerator.format_first_set_record)
+        DailyReportGenerator.format_first_set_record(self, report_name, header_msg)
 
+    # Update trending technical 1 sheet
+    def update_trending_technical_1(self, report_name, sheet_name, from_date, temp_dr_df, header_msg, frequency,
+                                    is_increased):
         book = load_workbook(report_name)
         sheet = book['Trendies Technical - I']
 
@@ -199,9 +145,10 @@ class DailyReportGenerator:
             DailyReportGenerator.update_decr_scrip_list)
         DailyReportGenerator.update_decr_scrip_list(self, temp_dr_df, sheet.max_row + 3, report_name)
 
-        DailyReportGenerator.format_cons_decrease_report = staticmethod(
-            DailyReportGenerator.format_cons_decrease_report)
-        DailyReportGenerator.format_cons_decrease_report(self, sheet.max_row + 2, report_name)
+        DailyReportGenerator.format_further_record_set = staticmethod(
+            DailyReportGenerator.format_further_record_set)
+        DailyReportGenerator.format_further_record_set(self, sheet.max_row + 2, from_date, report_name, header_msg,
+                                                       frequency, is_increased)
 
     # Update
     def update_decr_scrip_list(self, decreased_scrip_df, star_row, report_name):
@@ -215,14 +162,14 @@ class DailyReportGenerator:
         writer.save()
 
     # Format Cons Increase Report
-    def format_cons_increase_report(self, report_name):
+    def format_first_set_record(self, report_name, header_msg):
         to_date = srgh.create_date(srgh.current_date_str)
         from_date = srgh.offset_business_day(to_date, 2)
 
         book = load_workbook(report_name)
         sheet = book['Trendies Technical - I']
         sheet.merge_cells('A1:I1')
-        sheet.cell(row=1, column=1).value = 'Scrips with Price Increased Three Consecutive Session'
+        sheet.cell(row=1, column=1).value = header_msg
         sheet.merge_cells('A2:B2')
         sheet.cell(row=2, column=1).value = 'Scrip Details'
         max_column = sheet.max_column
@@ -279,32 +226,42 @@ class DailyReportGenerator:
         sheet.column_dimensions['G'].width = 15
         sheet.column_dimensions['H'].width = 15
         sheet.column_dimensions['I'].width = 15
+        sheet.column_dimensions['J'].width = 15
+        sheet.column_dimensions['K'].width = 15
+        sheet.column_dimensions['L'].width = 15
+        sheet.column_dimensions['M'].width = 15
+        sheet.column_dimensions['N'].width = 15
+        sheet.column_dimensions['O'].width = 15
+        sheet.column_dimensions['P'].width = 15
+        sheet.column_dimensions['Q'].width = 15
 
         book.save(report_name)
 
     # Format Cons Increase Report
-    def format_cons_decrease_report(self, start_row, report_name):
+    def format_further_record_set(self, start_row, from_date, report_name, header_msg, frequency, is_increased):
         to_date = srgh.create_date(srgh.current_date_str)
-        from_date = srgh.offset_business_day(to_date, 2)
 
         book = load_workbook(report_name)
 
         sheet = book['Trendies Technical - I']
-        cell_range = 'A' + str(start_row) + ':'+'I'+str(start_row)
+        column_name = DailyReportGenerator.get_column_name(self, frequency)
+        cell_range = 'A' + str(start_row) + ':' + column_name + str(start_row)
         sheet.merge_cells(cell_range)
-        sheet.cell(row=start_row, column=1).value = 'Scrips with Price Decreased Three Consecutive Session'
+        sheet.cell(row=start_row, column=1).value = header_msg
         cell_range = 'A' + str(start_row + 1) + ':'+'B'+str(start_row + 1)
         sheet.merge_cells(cell_range)
         sheet.cell(row=start_row + 1, column=1).value = 'Scrip Details'
-        max_column = sheet.max_column
+        # max_column = sheet.max_column
+        max_column = (frequency * 2) + 3
         curr_column = 4
         while curr_column < max_column:
-            sheet.merge_cells(start_row=start_row + 1, start_column=curr_column, end_row=start_row + 1, end_column=curr_column + 1)
+            sheet.merge_cells(start_row=start_row + 1, start_column=curr_column, end_row=start_row + 1,
+                              end_column=curr_column + 1)
 
             while srgh.check_holiday(from_date):
                 from_date = from_date + timedelta(days=1)
 
-            sheet.cell(row=start_row +1, column=curr_column).value = from_date.date()
+            sheet.cell(row=start_row + 1, column=curr_column).value = from_date.date()
             curr_column = curr_column + 2
             from_date = from_date + timedelta(days=1)
 
@@ -314,13 +271,16 @@ class DailyReportGenerator:
         while curr_row <= max_rows:
             while curr_column <= max_column:
                 sheet.cell(curr_row, curr_column).border = srgh.thin_border
-                if curr_row == start_row + 1  or curr_row == start_row + 2:
+                if curr_row == start_row + 1 or curr_row == start_row + 2:
                     sheet.cell(curr_row, curr_column).font = srgh.font_header
                     sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
                     sheet.cell(curr_row, curr_column).alignment = srgh.align_header
                 elif curr_row == start_row:
                     sheet.cell(curr_row, curr_column).font = srgh.font_header
-                    sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='F6646B', fill_type="solid")
+                    if is_increased:
+                        sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='CAFF33', fill_type="solid")
+                    else:
+                        sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='F6646B', fill_type="solid")
                     sheet.cell(curr_row, curr_column).alignment = srgh.align_header
                 else:
                     sheet.cell(curr_row, curr_column).font = srgh.font_body
@@ -345,6 +305,14 @@ class DailyReportGenerator:
         sheet.column_dimensions['A'].width = 12
 
         book.save(report_name)
+
+    # Return the column name corresponding to frequency
+    def get_column_name(self, frequency):
+        if frequency == 3:
+            column_name = 'I'
+        else:
+            column_name = 'Q'
+        return column_name
 
     # Generate the Price Volume Report
     def generate_price_volume_report(self, current_date, previous_date, report_name):
@@ -686,3 +654,233 @@ class DailyReportGenerator:
 
         writer.save()
 
+    def generate_trending_scrip_list_2(self, current_date, report_name):
+        sheet_name = srgh.create_sheet_name(srgh.current_date_str)
+        current_data = pd.read_excel(dp.master_report_name, sheet_name, skiprows=1)
+        current_data = current_data[['SYMBOL', 'Name', 'High.1', 'Low.1', 'High.2', 'Low.2', 'High.3', 'Low.3',
+                                     'High.4', 'Low.4']]
+
+        # Read the Scrip List
+        scrip_list = pd.read_excel(dp.master_data_file_name, "Details")
+        scrip_list = scrip_list[['SYMBOL', 'TRADE_DATE', 'CLOSE_PRICE']]
+        scrip_list = scrip_list[(scrip_list['TRADE_DATE']) == srgh.create_date(srgh.current_date_str)]
+
+        # Prepare the list for Selected List
+        merge_list = pd.merge(current_data, scrip_list, on=["SYMBOL", "SYMBOL"])
+
+        DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, True, True,
+                                                                 'Scrips closed above last month and last week high '
+                                                                 'price')
+        DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, False, True, True,
+                                                                 'Scrips closed above last month high price')
+        DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, False, True,
+                                                                 'Scrips closed above last week high price')
+        DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, True, False,
+                                                                 'Scrips closed below last month and last week high '
+                                                                 'price')
+        DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, False, True, False,
+                                                                 'Scrips closed below last month high price')
+        DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, False, False,
+                                                                 'Scrips closed below last week high price')
+
+    def report_closed_above_month_week_high(self, merge_list, report_name, last_week, last_month, increased,
+                                            header_msg):
+        selected_record = DailyReportGenerator.final_data_set(self, merge_list, last_week, last_month, increased)
+        selected_record=selected_record[['SYMBOL', 'Name', 'High.1', 'Low.1', 'High.2', 'Low.2', 'High.3',
+                                         'Low.3', 'High.4', 'Low.4', 'CLOSE_PRICE']]
+        selected_record.to_excel("temp4.xlsx")
+
+        # check of Trendies Technical - I sheet exists
+        sheet_exists = srgh.check_sheet_exist(report_name, "Trending Technical - 2")
+        if not sheet_exists:
+            DailyReportGenerator.create_trending_technical_2_sheet(self, report_name, "Trending Technical - 2",
+                                                                   selected_record, header_msg)
+        else:
+            DailyReportGenerator.update_trending_technical_2_sheet(self, report_name, "Trending Technical - 2",
+                                                                   selected_record, header_msg, increased)
+
+        # DailyReportGenerator.create_trending_technical_2_sheet(self, report_name, 'Trending Technical - 2',
+        #                                                       selected_record, header_msg)
+
+    def final_data_set(self, initial_list, last_week, last_month, increased):
+        if increased:
+            if last_month and last_week:
+                temp_list = initial_list[(initial_list['High.1'] <= initial_list['CLOSE_PRICE'])]
+                temp_list = temp_list[(temp_list['High.3'] <= temp_list['CLOSE_PRICE'])]
+                return temp_list
+            if last_month:
+                return initial_list[(initial_list['High.1'] <= initial_list['CLOSE_PRICE'])]
+            if last_week:
+                return initial_list[(initial_list['High.3'] <= initial_list['CLOSE_PRICE'])]
+        else:
+            if last_month and last_week:
+                temp_list = initial_list[(initial_list['High.1'] > initial_list['CLOSE_PRICE'])]
+                temp_list = temp_list[(temp_list['High.3'] > temp_list['CLOSE_PRICE'])]
+                return temp_list
+            if last_month:
+                return initial_list[(initial_list['High.1'] > initial_list['CLOSE_PRICE'])]
+            if last_week:
+                return initial_list[(initial_list['High.3'] > initial_list['CLOSE_PRICE'])]
+
+    # Create trending technical 1 sheet
+    def create_trending_technical_2_sheet(self, report_name, sheet_name, temp_df, header_msg):
+        book = load_workbook(report_name)
+        writer = pd.ExcelWriter(report_name, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        temp_df.to_excel(writer, sheet_name, startrow=2, index=False)
+        writer.save()
+        DailyReportGenerator.format_close_above_last_week = staticmethod(
+            DailyReportGenerator.format_close_above_last_week)
+        DailyReportGenerator.format_close_above_last_week(self, report_name, header_msg)
+
+    # Update trending technical 1 sheet
+    def update_trending_technical_2_sheet(self, report_name, sheet_name, selected_record, header_msg, is_increased):
+        book = load_workbook(report_name)
+        sheet = book[sheet_name]
+
+        DailyReportGenerator.update_selected_scrip_list = staticmethod(
+            DailyReportGenerator.update_selected_scrip_list)
+        DailyReportGenerator.update_selected_scrip_list(self, selected_record, sheet.max_row + 3, report_name)
+
+        DailyReportGenerator.format_selected_scrip_list = staticmethod(
+            DailyReportGenerator.format_selected_scrip_list)
+        DailyReportGenerator.format_selected_scrip_list(self, sheet.max_row + 2, report_name, header_msg, is_increased)
+
+    def update_selected_scrip_list(self, selected_record, star_row, report_name):
+        book = load_workbook(report_name)
+        writer = pd.ExcelWriter(report_name, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        # selected_list.to_excel(writer, sheet_name, header=None, index=False)
+
+        selected_record.to_excel(writer, 'Trending Technical - 2', startrow=star_row, index=False)
+        writer.save()
+
+    # Format Cons Increase Report
+    def format_selected_scrip_list(self, start_row, report_name, header_msg, is_increased):
+
+        book = load_workbook(report_name)
+
+        sheet = book['Trending Technical - 2']
+        cell_range = 'A' + str(start_row) + ':' + 'K' + str(start_row)
+        sheet.merge_cells(cell_range)
+        sheet.cell(row=start_row, column=1).value = header_msg
+        cell_range = 'A' + str(start_row + 1) + ':'+'B'+str(start_row + 1)
+        sheet.merge_cells(cell_range)
+        sheet.cell(row=start_row + 1, column=1).value = 'Scrip Details'
+        max_column = sheet.max_column
+        curr_column = 3
+        while curr_column < max_column:
+            sheet.merge_cells(start_row=start_row + 1, start_column=curr_column, end_row=start_row + 1,
+                              end_column=curr_column + 1)
+
+            curr_column = curr_column + 2
+
+        curr_column = 1
+        max_rows = sheet.max_row
+        curr_row = start_row
+        while curr_row <= max_rows:
+            while curr_column <= max_column:
+                sheet.cell(curr_row, curr_column).border = srgh.thin_border
+                if curr_row == start_row + 1 or curr_row == start_row + 2:
+                    sheet.cell(curr_row, curr_column).font = srgh.font_header
+                    sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    sheet.cell(curr_row, curr_column).alignment = srgh.align_header
+                elif curr_row == start_row:
+                    sheet.cell(curr_row, curr_column).font = srgh.font_header
+                    if is_increased:
+                        sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='CAFF33', fill_type="solid")
+                    else:
+                        sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='F6646B', fill_type="solid")
+                    sheet.cell(curr_row, curr_column).alignment = srgh.align_header
+                else:
+                    sheet.cell(curr_row, curr_column).font = srgh.font_body
+                    if curr_column < 3:
+                        sheet.cell(curr_row, curr_column).alignment = srgh.align_body_str
+                    else:
+                        sheet.cell(curr_row, curr_column).alignment = srgh.align_body_num
+                curr_column = curr_column + 1
+            sheet.row_dimensions[curr_row].height = 20  # In pixels
+            curr_row = curr_row + 1
+            curr_column = 1
+
+        curr_row_no = start_row + 3
+        for rows in sheet.iter_rows(min_row=start_row + 3, max_row=max_rows, min_col=1):
+            for cell in rows:
+                if curr_row_no % 2 == 1:
+                    cell.fill = PatternFill(start_color="f7ec8f", fill_type="solid")
+                else:
+                    cell.fill = PatternFill(start_color="edead7", fill_type="solid")
+            curr_row_no = curr_row_no + 1
+        sheet.column_dimensions['B'].width = 25
+        sheet.column_dimensions['A'].width = 12
+
+        book.save(report_name)
+
+    # Format Cons Increase Report
+    def format_close_above_last_week(self, report_name, header_msg):
+
+        book = load_workbook(report_name)
+        sheet = book['Trending Technical - 2']
+        sheet.merge_cells('A1:K1')
+        sheet.cell(row=1, column=1).value = header_msg
+        sheet.merge_cells('A2:B2')
+        sheet.cell(row=2, column=1).value = 'Scrip Details'
+        sheet.merge_cells('C2:D2')
+        sheet.cell(row=2, column=3).value = 'Last Month'
+        sheet.merge_cells('E2:F2')
+        sheet.cell(row=2, column=5).value = 'Current Month'
+        sheet.merge_cells('G2:H2')
+        sheet.cell(row=2, column=7).value = 'Last Week'
+        sheet.merge_cells('I2:J2')
+        sheet.cell(row=2, column=9).value = 'Current Week'
+
+        max_column = sheet.max_column
+        curr_column = 4
+
+        curr_column = 1
+        max_rows = sheet.max_row
+        curr_row = 1
+        while curr_row <= max_rows:
+            while curr_column <= max_column:
+                sheet.cell(curr_row, curr_column).border = srgh.thin_border
+                if curr_row == 3 or curr_row == 2:
+                    sheet.cell(curr_row, curr_column).font = srgh.font_header
+                    sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    sheet.cell(curr_row, curr_column).alignment = srgh.align_header
+                elif curr_row == 1:
+                    sheet.cell(curr_row, curr_column).font = srgh.font_header
+                    sheet.cell(curr_row, curr_column).fill = PatternFill(start_color='CAFF33', fill_type="solid")
+                    sheet.cell(curr_row, curr_column).alignment = srgh.align_header
+                else:
+                    sheet.cell(curr_row, curr_column).font = srgh.font_body
+                    if curr_column < 3:
+                        sheet.cell(curr_row, curr_column).alignment = srgh.align_body_str
+                    else:
+                        sheet.cell(curr_row, curr_column).alignment = srgh.align_body_num
+                curr_column = curr_column + 1
+            sheet.row_dimensions[curr_row].height = 20  # In pixels
+            curr_row = curr_row + 1
+            curr_column = 1
+
+        curr_row_no = 4
+        for rows in sheet.iter_rows(min_row=4, max_row=max_rows, min_col=1):
+            for cell in rows:
+                if curr_row_no % 2 == 1:
+                    cell.fill = PatternFill(start_color="f7ec8f", fill_type="solid")
+                else:
+                    cell.fill = PatternFill(start_color="edead7", fill_type="solid")
+            curr_row_no = curr_row_no + 1
+        sheet.column_dimensions['A'].width = 18
+        sheet.column_dimensions['B'].width = 25
+        sheet.column_dimensions['C'].width = 12
+        sheet.column_dimensions['D'].width = 12
+        sheet.column_dimensions['E'].width = 12
+        sheet.column_dimensions['F'].width = 12
+        sheet.column_dimensions['G'].width = 12
+        sheet.column_dimensions['H'].width = 12
+        sheet.column_dimensions['I'].width = 12
+        sheet.column_dimensions['J'].width = 12
+        sheet.column_dimensions['K'].width = 15
+        book.save(report_name)

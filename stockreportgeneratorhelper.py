@@ -292,8 +292,16 @@ volatility_header_updated = {'SYMBOL': 'SYMBOL', 'NAME': 'Name', 'PREV_CL_PR': '
                              'OPEN_PRICE': 'Open Price', 'HIGH_PRICE': 'High Price', 'LOW_PRICE': 'Low Price',
                              'CLOSE_PRICE': 'Close Price'}
 
-cons_increased_header1 = {'PREV_CL_PR': 'Previous Closing Price', 'CLOSE_PRICE_x': 'Closing Price',
+cons_increased_header3 = {'PREV_CL_PR': 'Previous Closing Price', 'CLOSE_PRICE_x': 'Closing Price',
                           'NET_TRDQTY_x': 'Volume', 'CLOSE_PRICE_y': 'Closing Price', 'NET_TRDQTY_y': 'Volume',
+                          'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume'}
+
+cons_increased_header7 = {'PREV_CL_PR': 'Previous Closing Price', 'CLOSE_PRICE_x': 'Closing Price',
+                          'NET_TRDQTY_x': 'Volume', 'CLOSE_PRICE_y': 'Closing Price', 'NET_TRDQTY_y': 'Volume',
+                          'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                          'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                          'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                          'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
                           'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume'}
 
 cons_increased_header2 = {' ': 'SYMBOL', 'TRADE_DATE': 'Name'}
