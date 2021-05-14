@@ -1,10 +1,11 @@
 from openpyxl import styles, load_workbook
 from datetime import datetime, timedelta
 import pandas as pd
-import directorypaths as dp
 from openpyxl.styles import Alignment, Font
 from openpyxl.styles.borders import BORDER_THIN
 from openpyxl.styles import Border, Side
+import staticconfiguration as sc
+from staticconfiguration import StaticConfiguration
 
 
 input_date_format = '%d%m%y'
@@ -83,9 +84,10 @@ green_fill = styles.PatternFill(start_color=green_color, end_color=green_color, 
 
 # get the current date from CurrentDate.txt file
 def get_current_date():
-    current_date_file = open("CurrentDate.txt")
-    current_date = current_date_file.read()
-    current_date_file.close()
+    # current_date_file = open("D:\\Python_Example\\stock_report_generator\\CurrentDate.txt")
+    # current_date = current_date_file.read()
+    # current_date_file.close()
+    current_date = input("Enter Date: ")
     return current_date
 
 
@@ -199,10 +201,10 @@ def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
     writer.save()
 
 
-current_date_str = get_current_date()
-gl_sheet_name = create_sheet_name(current_date_str)
+# current_date_str = self.current_date_str
+# gl_sheet_name = create_sheet_name(self.current_date_str)
 gl_master_data_sheet_name = 'details'
-gl_formatted_date = create_date(current_date_str)
+# gl_formatted_date = create_date(self.current_date_str)
 
 red_color = 'F6646B'
 green_color = 'CAFF33'
@@ -212,51 +214,49 @@ green_fill = styles.PatternFill(start_color=green_color, end_color=green_color, 
 
 # Sets the important dates and other configuration required to
 # generate the reports. The input is App_Process_Calendar.xlsx file
-def set_app_process_flags(current_date):
-    df = pd.read_excel(dp.App_Process_Calendar_file, 0)
+def set_app_process_flags(current_date, config):
+    df = pd.read_excel(config.App_Process_Calendar_file, 0)
     process_calendar = {}
     for index, row in df.iterrows():
         key = row.Process_Type
         process_calendar.update({key: row.Date.date()})
+    config.is_last_day_year = (process_calendar.get("LAST_BIZ_DAY_YEAR") == current_date.date())
+    config.is_first_day_year = (process_calendar.get("FIRST_BIZ_DAY_YEAR") == current_date.date())
+    config.is_last_day_fin_year = (process_calendar.get("LAST_BIZ_DAY_OF_FIN_YEAR") == current_date.date())
+    config.is_first_day_fin_year = (process_calendar.get("FIRST_BIZ_DAY_OF_FIN_YEAR") == current_date.date())
 
-    dp.is_last_day_year = (process_calendar.get("LAST_BIZ_DAY_YEAR") == current_date.date())
-    dp.is_first_day_year = (process_calendar.get("FIRST_BIZ_DAY_YEAR") == current_date.date())
-    dp.is_last_day_fin_year = (process_calendar.get("LAST_BIZ_DAY_OF_FIN_YEAR") == current_date.date())
-    dp.is_first_day_fin_year = (process_calendar.get("FIRST_BIZ_DAY_OF_FIN_YEAR") == current_date.date())
-
-    df = pd.read_excel(dp.App_Process_Calendar_file, 1)
+    df = pd.read_excel(config.App_Process_Calendar_file, 1)
     important_configuration = {}
     for index, row in df.iterrows():
         key = row.Key
         important_configuration.update({key: row.Value})
 
-    dp.financial_year = important_configuration.get("FINANCIAL_YEAR")
+    config.financial_year = important_configuration.get("FINANCIAL_YEAR")
 
 
 # Check if a given date is holiday or not
 # If the date is weekend, then it is holiday
 # Else, if the date is there in the given holiday list
 # the Holiday List will be given in NSE_Holiday_List.xlsx file.
-def check_holiday(current_date):
+def check_holiday(current_date, configs):
     if current_date.weekday() == 5 or current_date.weekday() == 6:
         return True
-
-    return current_date in pd.read_excel(dp.nse_holiday_list)['Date'].tolist()
+    return current_date in pd.read_excel(configs.nse_holiday_list)['Date'].tolist()
 
 
 # Check whether a given date is first day of week or not
-def check_new_week(current_date):
+def check_new_week(current_date, config):
     if current_date.weekday() == 0:
         return True
 
-    if check_holiday(current_date):
+    if check_holiday(current_date, config):
         return False
 
     no_of_day = current_date.weekday()
 
     while no_of_day != 0:
         current_date = current_date - timedelta(days=1)
-        if check_holiday(current_date):
+        if check_holiday(current_date, config):
             no_of_day = current_date.weekday()
             continue
         else:
@@ -266,13 +266,13 @@ def check_new_week(current_date):
 
 
 # Returns the last business day offset by given no of days
-def offset_business_day(current_date, offset_days):
+def offset_business_day(current_date, offset_days, config):
 
     curr_offset_days = 0
 
     while curr_offset_days != offset_days:
         previous_date = current_date - timedelta(days=1)
-        while check_holiday(previous_date):
+        while check_holiday(previous_date, config):
             previous_date = previous_date - timedelta(days=1)
         current_date = previous_date
         curr_offset_days = curr_offset_days + 1

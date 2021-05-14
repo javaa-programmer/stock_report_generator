@@ -1,7 +1,6 @@
 import pandas as pd
 import stockreportgeneratorhelper as srgh
 from openpyxl.styles import PatternFill
-import directorypaths as dp
 from openpyxl import load_workbook
 import numpy as np
 from datetime import timedelta
@@ -9,17 +8,18 @@ from datetime import timedelta
 
 class DailyReportGenerator:
 
-    def __init__(self, input_file_name, data_sheet_name, current_date_str):
+    def __init__(self, input_file_name, data_sheet_name, current_date_str, config):
         self.input_file_name = input_file_name
         self.data_sheet_name = data_sheet_name
         self.current_date_str = current_date_str
+        self.config = config
 
     # Generate Daily Reports
     # Generate the Price Volume Report
     def generate_daily_reports(self):
         current_date = srgh.create_date(self.current_date_str)
-        previous_date = srgh.offset_business_day(current_date, 1)
-        report_name = dp.output_file_path + dp.daily_report_name + '_' + str(current_date.date()) + '.xlsx'
+        previous_date = srgh.offset_business_day(current_date, 1, self.config)
+        report_name = self.config.output_file_path + self.config.daily_report_name + '_' + str(current_date.date()) + '.xlsx'
 
         DailyReportGenerator.generate_price_volume_report = staticmethod(
                                    DailyReportGenerator.generate_price_volume_report)
@@ -38,7 +38,6 @@ class DailyReportGenerator:
         DailyReportGenerator.generate_trending_scrip_list_2 = staticmethod(DailyReportGenerator.generate_trending_scrip_list_2)
         DailyReportGenerator.generate_trending_scrip_list_2(self, current_date, report_name)
 
-
     # Generate the report for the shares whose close price is increased
     # or decreased three consecutive days.
     def generate_trending_scrip_list(self, current_date, report_name):
@@ -50,8 +49,8 @@ class DailyReportGenerator:
     def generate_three_cons_report(self, current_date, report_name):
         master_data = pd.read_excel(self.input_file_name, self.data_sheet_name)
 
-        to_date = srgh.create_date(srgh.current_date_str)
-        from_date = srgh.offset_business_day(current_date, 2)
+        to_date = srgh.create_date(self.current_date_str)
+        from_date = srgh.offset_business_day(current_date, 2, self.config)
         DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 3, True,
                                                           'Scrips with Price Increased Three Consecutive Session')
         DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 3, False,
@@ -59,8 +58,8 @@ class DailyReportGenerator:
 
     # Seven consecutive days
     def generate_seven_cons_report(self, master_data, current_date, report_name):
-        to_date = srgh.create_date(srgh.current_date_str)
-        from_date = srgh.offset_business_day(current_date, 6)
+        to_date = srgh.create_date(self.current_date_str)
+        from_date = srgh.offset_business_day(current_date, 6, self.config)
         DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 7, True,
                                                           'Scrips with Price Increased Seven Consecutive Session')
         DailyReportGenerator.generate_consecutive_records(self, master_data, from_date, to_date, report_name, 7, False,
@@ -103,7 +102,7 @@ class DailyReportGenerator:
         app_date = from_date
         while app_date < to_date:
             app_date = app_date + timedelta(days=1)
-            while srgh.check_holiday(app_date):
+            while srgh.check_holiday(app_date, self.config):
                 app_date = app_date + timedelta(days=1)
 
             temp_df1 = price_data[(price_data['TRADE_DATE'] == app_date)]
@@ -118,7 +117,7 @@ class DailyReportGenerator:
             except IndexError:
                 temp_df = temp_df if not temp_df.empty else temp_df1
 
-            while srgh.check_holiday(app_date):
+            while srgh.check_holiday(app_date, self.config):
                 app_date = app_date + timedelta(days=1)
         temp_df.drop(columns=['TRADE_DATE'], inplace=True)
         return temp_df
@@ -163,8 +162,8 @@ class DailyReportGenerator:
 
     # Format Cons Increase Report
     def format_first_set_record(self, report_name, header_msg):
-        to_date = srgh.create_date(srgh.current_date_str)
-        from_date = srgh.offset_business_day(to_date, 2)
+        to_date = srgh.create_date(self.current_date_str)
+        from_date = srgh.offset_business_day(to_date, 2, self.config)
 
         book = load_workbook(report_name)
         sheet = book['Trendies Technical - I']
@@ -177,7 +176,7 @@ class DailyReportGenerator:
         while curr_column < max_column:
             sheet.merge_cells(start_row=2, start_column=curr_column, end_row=2, end_column=curr_column + 1)
 
-            while srgh.check_holiday(from_date):
+            while srgh.check_holiday(from_date, self.config):
                 from_date = from_date + timedelta(days=1)
 
             sheet.cell(row=2, column=curr_column).value = from_date.date()
@@ -239,7 +238,7 @@ class DailyReportGenerator:
 
     # Format Cons Increase Report
     def format_further_record_set(self, start_row, from_date, report_name, header_msg, frequency, is_increased):
-        to_date = srgh.create_date(srgh.current_date_str)
+        to_date = srgh.create_date(self.current_date_str)
 
         book = load_workbook(report_name)
 
@@ -258,7 +257,7 @@ class DailyReportGenerator:
             sheet.merge_cells(start_row=start_row + 1, start_column=curr_column, end_row=start_row + 1,
                               end_column=curr_column + 1)
 
-            while srgh.check_holiday(from_date):
+            while srgh.check_holiday(from_date, self.config):
                 from_date = from_date + timedelta(days=1)
 
             sheet.cell(row=start_row + 1, column=curr_column).value = from_date.date()
@@ -408,10 +407,10 @@ class DailyReportGenerator:
         writer = pd.ExcelWriter(report_name, engine='openpyxl')
 
         # Convert the dataframe to an XlsxWriter Excel object.
-        price_incr_vol_incr.to_excel(writer, sheet_name=dp.sheet_name_price_volume, header=None, index=False)
+        price_incr_vol_incr.to_excel(writer, sheet_name=self.config.sheet_name_price_volume, header=None, index=False)
 
         # Get the openpyxl workbook and worksheet objects.
-        worksheet = writer.sheets[dp.sheet_name_price_volume]
+        worksheet = writer.sheets[self.config.sheet_name_price_volume]
 
         max_rows = worksheet.max_row
         st_row = 1
@@ -655,15 +654,15 @@ class DailyReportGenerator:
         writer.save()
 
     def generate_trending_scrip_list_2(self, current_date, report_name):
-        sheet_name = srgh.create_sheet_name(srgh.current_date_str)
-        current_data = pd.read_excel(dp.master_report_name, sheet_name, skiprows=1)
+        sheet_name = srgh.create_sheet_name(self.current_date_str)
+        current_data = pd.read_excel(self.config.master_report_name, sheet_name, skiprows=1)
         current_data = current_data[['SYMBOL', 'Name', 'High.1', 'Low.1', 'High.2', 'Low.2', 'High.3', 'Low.3',
                                      'High.4', 'Low.4']]
 
         # Read the Scrip List
-        scrip_list = pd.read_excel(dp.master_data_file_name, "Details")
+        scrip_list = pd.read_excel(self.config.master_data_file_name, "Details")
         scrip_list = scrip_list[['SYMBOL', 'TRADE_DATE', 'CLOSE_PRICE']]
-        scrip_list = scrip_list[(scrip_list['TRADE_DATE']) == srgh.create_date(srgh.current_date_str)]
+        scrip_list = scrip_list[(scrip_list['TRADE_DATE']) == srgh.create_date(self.current_date_str)]
 
         # Prepare the list for Selected List
         merge_list = pd.merge(current_data, scrip_list, on=["SYMBOL", "SYMBOL"])
