@@ -82,11 +82,8 @@ red_fill = styles.PatternFill(start_color=red_color, end_color=red_color, fill_t
 green_fill = styles.PatternFill(start_color=green_color, end_color=green_color, fill_type='solid')
 
 
-# get the current date from CurrentDate.txt file
+# get the current date from user input
 def get_current_date():
-    # current_date_file = open("D:\\Python_Example\\stock_report_generator\\CurrentDate.txt")
-    # current_date = current_date_file.read()
-    # current_date_file.close()
     current_date = input("Enter Date: ")
     return current_date
 
@@ -304,4 +301,19 @@ cons_increased_header7 = {'PREV_CL_PR': 'Previous Closing Price', 'CLOSE_PRICE_x
                           'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
                           'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume'}
 
-cons_increased_header2 = {' ': 'SYMBOL', 'TRADE_DATE': 'Name'}
+
+trendies_1_empty_dataframe_header = {'PREV_CL_PR': 'SYMBOL', 'CLOSE_PRICE_x': 'Name',
+                                     'NET_TRDQTY': 'Previous Closing Price',
+                                     'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                                     'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                                     'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                                     'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                                     'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume',
+                                     'CLOSE_PRICE': 'Closing Price', 'NET_TRDQTY': 'Volume'}
+
+trendies_2_header = {'High.1': 'High Price', 'Low.1': 'Low Price',
+                     'High.2': 'High Price', 'Low.2': 'Low Price',
+                     'High.3': 'High Price', 'Low.3': 'Low Price',
+                     'High.4': 'High Price', 'Low.4': 'Low Price',
+                     'CLOSE_PRICE': 'Closing Price'
+                     }

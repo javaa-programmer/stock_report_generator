@@ -2,7 +2,6 @@
 class StaticConfiguration:
 
     def __init__(self, configs):
-        print(f'Database User: {configs.get("input_file_path").data}')
         self.input_file_path = configs.get("input_file_path").data
         self.output_file_path = configs.get("output_file_path").data
         self.other_file_path = configs.get("other_file_path").data

@@ -44,8 +44,7 @@ configs = Properties()
 
 
 def load_config():
-    print(f'Inside load_config')
-    with open("D:\\personal\\trading\others\\application_config.properties", 'rb') as config_file:
+    with open("D:\\personal\\stock-market\\others\\application_config.properties", 'rb') as config_file:
         configs.load(config_file)
     sc = StaticConfiguration(configs)
     return sc
@@ -60,9 +59,6 @@ is_holiday = srgh.check_holiday(srgh.create_date(current_date), sc)
 
 if not is_holiday:
 
-    print(f'Before config loading')
-    # sc = load_config()
-    print(f'After config loading')
     # Unzip the file, copy to input directory
     # and delete the unused files.
     prepare_file()
@@ -72,12 +68,12 @@ if not is_holiday:
     srgh.set_app_process_flags(srgh.create_date(current_date), sc)
 
     # Update the master data excel
-    # mdfu = MasterDataFileUpdater(sc.master_data_file_name, 'Details', current_date, sc)
-    # mdfu.update_master_data()
+    mdfu = MasterDataFileUpdater(sc.master_data_file_name, 'Details', current_date, sc)
+    mdfu.update_master_data()
 
     # update the master report
-    # mru = MasterReportUpdater(sc.master_data_file_name, 'Details', current_date, sc)
-    # mru.update_master_report()
+    mru = MasterReportUpdater(sc.master_data_file_name, 'Details', current_date, sc)
+    mru.update_master_report()
 
     # Generate Daily Reports
     drg = DailyReportGenerator(sc.master_data_file_name, 'Details', current_date, sc)
