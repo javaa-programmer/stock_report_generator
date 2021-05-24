@@ -1,7 +1,6 @@
 import pandas as pd
 from datetime import date
 import stockreportgeneratorhelper as srgh
-import directorypaths as dp
 from openpyxl import load_workbook, formatting, styles
 from openpyxl.styles.borders import BORDER_THIN
 from openpyxl.styles import PatternFill, Border, Side
@@ -10,13 +9,14 @@ from openpyxl.utils import get_column_letter
 
 class MasterReportUpdater:
 
-    def __init__(self, input_file_name, sheet_name, current_date_str):
+    def __init__(self, input_file_name, sheet_name, current_date_str, config):
+        self.config = config
         self.input_file_name = input_file_name
         self.sheet_name = sheet_name
         self.current_date_str = current_date_str
         self.current_date = srgh.create_date(self.current_date_str)
         self.report_sheet_name = srgh.create_sheet_name(self.current_date_str)
-        self.sheet_exist = srgh.check_sheet_exist(dp.master_report_name, self.report_sheet_name)
+        self.sheet_exist = srgh.check_sheet_exist(self.config.master_report_name, self.report_sheet_name)
 
     # Reshape the Header
     # Creates the multi level header for master report
@@ -43,7 +43,7 @@ class MasterReportUpdater:
     # Get the openpyxl workbook and worksheet objects.
     # Format the excel rows and columns
     def format_final_excel(self):
-        book = load_workbook(dp.master_report_name)
+        book = load_workbook(self.config.master_report_name)
         sheet = book[self.report_sheet_name]
         sheet.merge_cells('A1:B1')
         sheet.merge_cells('C1:D1')
@@ -112,18 +112,18 @@ class MasterReportUpdater:
                                                                         fill=srgh.green_fill))
             column_counter = column_counter - 6
 
-        book.save(dp.master_report_name)
+        book.save(self.config.master_report_name)
 
     # update master report
     def update_master_report(self):
-        mru = MasterReportUpdater(self.input_file_name, self.sheet_name, self.current_date_str)
+        mru = MasterReportUpdater(self.input_file_name, self.sheet_name, self.current_date_str, self.config)
         updated_record_set = mru.update_week_month_year()
         final_record_set = mru.calculate_month_weekly_high_low(updated_record_set,
                                                               srgh.create_date(self.current_date_str))
-        date_wise_record_set = mru.update_date_wise_record(self.input_file_name, dp.master_report_name,
+        date_wise_record_set = mru.update_date_wise_record(self.input_file_name, self.config.master_report_name,
                                                            srgh.create_date(self.current_date_str), final_record_set,
                                                            self.current_date)
-        mru.reshape_header(date_wise_record_set, dp.master_report_name, self.report_sheet_name)
+        mru.reshape_header(date_wise_record_set, self.config.master_report_name, self.report_sheet_name)
         MasterReportUpdater.format_final_excel = staticmethod(MasterReportUpdater.format_final_excel)
 
         MasterReportUpdater.format_final_excel(self)
@@ -152,11 +152,10 @@ class MasterReportUpdater:
 
         return curr_week_data
 
-
     # Calculate the weekly High, Low and Monthly High and Low for new sheet.
     # If sheet already exist for any month, do nothing
     def calculate_month_weekly_high_low(self, df_scrip_list, current_date):
-        sheet_exists = srgh.check_sheet_exist(dp.master_report_name, srgh.create_sheet_name(srgh.current_date_str))
+        sheet_exists = srgh.check_sheet_exist(self.config.master_report_name, srgh.create_sheet_name(self.current_date_str))
         if sheet_exists:
             print("Sheet Exist...will not be created...")
             return
@@ -171,7 +170,7 @@ class MasterReportUpdater:
         for index, row in selected_fields_weekly_high.iterrows():
 
             temp_week = row.WEEK
-            if dp.is_first_day_year and temp_week == 52:
+            if self.config.is_first_day_year and temp_week == 52:
                 temp_week = 0
 
             key = row.SYMBOL + str(temp_week + 1) + str(row.YEAR)
@@ -193,7 +192,7 @@ class MasterReportUpdater:
         for index, row in selected_fields_weekly_low.iterrows():
 
             temp_week = row.WEEK
-            if dp.is_first_day_year and temp_week == 52:
+            if self.config.is_first_day_year and temp_week == 52:
                 temp_week = 0
 
             key = row.SYMBOL + str(temp_week + 1) + str(row.YEAR)
@@ -215,7 +214,7 @@ class MasterReportUpdater:
         for index, row in selected_fields_monthly_high.iterrows():
 
             temp_month = row.MONTH
-            if dp.is_first_day_year and temp_month == 12:
+            if self.config.is_first_day_year and temp_month == 12:
                 temp_month = 0
 
             key = row.SYMBOL + str(temp_month + 1) + str(row.YEAR)
@@ -237,7 +236,7 @@ class MasterReportUpdater:
         for index, row in selected_fields_monthly_high.iterrows():
 
             temp_month = row.MONTH
-            if dp.is_first_day_year and temp_month == 12:
+            if self.config.is_first_day_year and temp_month == 12:
                 temp_month = 0
 
             key = row.SYMBOL + str(temp_month + 1) + str(row.YEAR)
@@ -291,10 +290,10 @@ class MasterReportUpdater:
                                      'LOW_PRICE', 'CLOSE_PRICE', 'NET_TRDQTY']]
         existing_header_values = []
 
-        is_new_week = srgh.check_new_week(self.current_date)
+        is_new_week = srgh.check_new_week(self.current_date, self.config)
 
         if self.sheet_exist:
-            monthly_report = pd.read_excel(dp.master_report_name, self.report_sheet_name, skiprows=1)
+            monthly_report = pd.read_excel(self.config.master_report_name, self.report_sheet_name, skiprows=1)
         else:
             monthly_report = master_report_data
 
@@ -311,7 +310,7 @@ class MasterReportUpdater:
 
         if self.sheet_exist:
 
-            df = pd.read_excel(dp.master_report_name, self.report_sheet_name)
+            df = pd.read_excel(self.config.master_report_name, self.report_sheet_name)
             header_list = list(df.columns.values)
             counter = 12
 
