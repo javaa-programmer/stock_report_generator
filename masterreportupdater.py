@@ -123,6 +123,9 @@ class MasterReportUpdater:
         date_wise_record_set = mru.update_date_wise_record(self.input_file_name, self.config.master_report_name,
                                                            srgh.create_date(self.current_date_str), final_record_set,
                                                            self.current_date)
+        if date_wise_record_set.empty:
+            return
+
         mru.reshape_header(date_wise_record_set, self.config.master_report_name, self.report_sheet_name)
         MasterReportUpdater.format_final_excel = staticmethod(MasterReportUpdater.format_final_excel)
 
@@ -157,15 +160,11 @@ class MasterReportUpdater:
     def calculate_month_weekly_high_low(self, df_scrip_list, current_date):
         sheet_exists = srgh.check_sheet_exist(self.config.master_report_name, srgh.create_sheet_name(self.current_date_str))
         if sheet_exists:
-            print("Sheet Exist...will not be created...")
             return
-
-        print("Sheet does not exist... will create new")
 
         # Calculate Weekly High Price
         weekly_high_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'WEEK', 'YEAR'])["HIGH_PRICE"].idxmax()]
         selected_fields_weekly_high = weekly_high_price[['SYMBOL', 'SERIES', 'WEEK', 'YEAR', 'HIGH_PRICE']]
-
         last_week_high_price = {}
         for index, row in selected_fields_weekly_high.iterrows():
 
@@ -264,7 +263,6 @@ class MasterReportUpdater:
                                            'WE_LOW_PRICE']]
 
         return fl_record_set
-
 
     # Rename the newly generated columns once the columns are added for run date
     def rename_date_wise_column(self, existing_header_values):

@@ -38,6 +38,15 @@ class DailyReportGenerator:
         DailyReportGenerator.generate_trending_scrip_list_2 = staticmethod(DailyReportGenerator.generate_trending_scrip_list_2)
         DailyReportGenerator.generate_trending_scrip_list_2(self, current_date, report_name)
 
+        DailyReportGenerator.generate_ca_records = staticmethod(DailyReportGenerator.generate_ca_records)
+        DailyReportGenerator.generate_ca_records(self, report_name)
+
+        DailyReportGenerator.generate_bulk_deal_records = staticmethod(DailyReportGenerator.generate_bulk_deal_records)
+        DailyReportGenerator.generate_bulk_deal_records(self, report_name)
+
+        DailyReportGenerator.generate_block_deal_records = staticmethod(DailyReportGenerator.generate_block_deal_records)
+        DailyReportGenerator.generate_block_deal_records(self, report_name)
+
     # Generate the report for the shares whose close price is increased
     # or decreased three consecutive days.
     def generate_trending_scrip_list(self, current_date, report_name):
@@ -892,3 +901,259 @@ class DailyReportGenerator:
         sheet.column_dimensions['J'].width = 12
         sheet.column_dimensions['K'].width = 15
         book.save(report_name)
+
+    def generate_ca_records(self, report_name):
+
+        # Read the Price File
+        try:
+            input_file_name = self.config.input_file_path + 'Bc' + self.current_date_str + '.csv'
+            ca_details = pd.read_csv(input_file_name)
+        except FileNotFoundError:
+            print("Corporate Actions: file not found")
+            return
+
+        # Read the Scrip List
+        scrip_list = pd.read_excel(self.config.master_scrip_list, "SCRIP_LIST")
+
+        # Prepare the list for Selected List
+        selected_list = pd.merge(scrip_list, ca_details, left_on=["SYMBOL", "SERIES"], right_on=["SYMBOL", "SERIES"])
+        selected_list = selected_list[['SYMBOL', 'NAME', 'PURPOSE', 'RECORD_DT', 'EX_DT']]
+
+        ca_details = ca_details[(ca_details['SERIES'] == 'EQ')]
+        all_ca_list = ca_details[['SYMBOL', 'SECURITY', 'PURPOSE', 'RECORD_DT', 'EX_DT']]
+        all_ca_list.rename(columns=srgh.ca_header_updated, inplace=True)
+
+        narration1 = pd.DataFrame({'SYMBOL': 'Corporate Actions - My Scrips', 'NAME': ' ',
+                               'PURPOSE': '', 'RECORD_DT': '', 'EX_DT': ''},
+                              index=[0])
+
+        narration2 = pd.DataFrame({'SYMBOL': 'Corporate Actions - Market', 'NAME': ' ',
+                                   'PURPOSE': '', 'RECORD_DT': '', 'EX_DT': ''},
+                                  index=[0])
+
+        cust_header = pd.DataFrame({'SYMBOL': 'SYMBOL', 'NAME': 'Name', 'PURPOSE': 'Purpose',
+                                'RECORD_DT': 'Record Date', 'EX_DT': 'Ex Date'}, index=[0])
+
+        # Append Data Frame when Price Increased and Volume Increased
+        narration1 = narration1.append(cust_header)
+        selected_list = narration1.append(selected_list, sort=False)
+
+        narration2 = narration2.append(cust_header)
+        all_ca_list = narration2.append(all_ca_list, sort=False)
+        selected_list = selected_list.append(all_ca_list, sort=False)
+
+        book = load_workbook(report_name)
+        writer = pd.ExcelWriter(report_name, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        selected_list.to_excel(writer, "Corporate Actions", header=None, index=False)
+
+        # Get the openpyxl workbook and worksheet objects.
+        worksheet = writer.sheets['Corporate Actions']
+
+        max_rows = worksheet.max_row
+        st_row = 1
+        st_col = 1
+        for row_cells in worksheet.iter_rows(min_row=1, max_row=max_rows):
+            for cell in row_cells:
+                worksheet.cell(st_row, st_col).border = srgh.thin_border
+                if 'Corporate Actions' in str(cell.value):
+                    worksheet.merge_cells(start_row=st_row, start_column=st_col, end_row=st_row, end_column=st_col + 4)
+                    worksheet.cell(st_row, st_col).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    worksheet.cell(st_row, st_col).font = srgh.font_header
+                    worksheet.cell(st_row, st_col).alignment = srgh.align_header
+                    break
+                elif str(cell.value) in srgh.ca_header_updated_1:
+                    worksheet.cell(st_row, st_col).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    worksheet.cell(st_row, st_col).font = srgh.font_header
+                    worksheet.cell(st_row, st_col).alignment = srgh.align_header
+                    st_col = st_col + 1
+
+                else:
+                    worksheet.cell(st_row, st_col).font = srgh.font_body
+                    if st_row % 2 == 1:
+                        cell.fill = PatternFill(start_color="f7ec8f", fill_type="solid")
+                    else:
+                        cell.fill = PatternFill(start_color="edead7", fill_type="solid")
+
+                    if type(cell.value) == str:
+                        worksheet.cell(st_row, st_col).alignment = srgh.align_body_str
+                    else:
+                        worksheet.cell(st_row, st_col).alignment = srgh.align_body_num
+                    st_col = st_col + 1
+            st_col = 1
+            st_row = st_row + 1
+            worksheet.row_dimensions[st_row].height = 20  # In pixels
+
+            worksheet.column_dimensions['A'].width = 15
+            worksheet.column_dimensions['B'].width = 30
+            worksheet.column_dimensions['C'].width = 50
+            worksheet.column_dimensions['D'].width = 20
+            worksheet.column_dimensions['E'].width = 20
+        writer.save()
+
+    def generate_bulk_deal_records(self, report_name):
+
+        # Read the Price File
+        try:
+            bulk_deals = pd.read_csv(self.config.bulk_file_name)
+        except FileNotFoundError:
+            print("Bulk Deals: file not found")
+            return
+
+        # Read the Scrip List
+        scrip_list = pd.read_excel(self.config.master_scrip_list, "SCRIP_LIST")
+
+        # Prepare the list for Selected List
+        selected_list = pd.merge(scrip_list, bulk_deals, left_on=["SYMBOL"], right_on=["Symbol"])
+        selected_list = selected_list[['Symbol', 'Security Name', 'Client Name', 'Buy/Sell', 'Quantity Traded',
+                                       'Trade Price / Wght. Avg. Price']]
+
+        all_bulk_deals = bulk_deals[['Symbol', 'Security Name', 'Client Name', 'Buy/Sell', 'Quantity Traded',
+                                     'Trade Price / Wght. Avg. Price']]
+
+        narration1 = pd.DataFrame({'Symbol': 'Bulk Deals - My Scrips', 'Security Name': ' ', 'Client Name': '',
+                                   'Buy/Sell': '', 'Quantity Traded': '', 'Trade Price / Wght. Avg. Price': ''},
+                                  index=[0])
+
+        narration2 = pd.DataFrame({'Symbol': 'Bulk Deals - Market', 'Security Name': ' ', 'Client Name': '',
+                                   'Buy/Sell': '', 'Quantity Traded': '', 'Trade Price / Wght. Avg. Price': ''},
+                                  index=[0])
+
+        cust_header = pd.DataFrame({'Symbol': 'Symbol', 'Security Name': 'Security Name', 'Client Name': 'Client Name',
+                                    'Buy/Sell': 'Buy/Sell', 'Quantity Traded': 'Quantity Traded',
+                                    'Trade Price / Wght. Avg. Price': 'Trade Price / Wght. Avg. Price'}, index=[0])
+
+        # Append Data Frame when Price Increased and Volume Increased
+        narration1 = narration1.append(cust_header)
+        selected_list = narration1.append(selected_list, sort=False)
+
+        narration2 = narration2.append(cust_header)
+        all_bulk_deals = narration2.append(all_bulk_deals, sort=False)
+        selected_list = selected_list.append(all_bulk_deals, sort=False)
+
+        book = load_workbook(report_name)
+        writer = pd.ExcelWriter(report_name, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        selected_list.to_excel(writer, "Bulk Deals", header=None, index=False)
+
+        # Get the openpyxl workbook and worksheet objects.
+        worksheet = writer.sheets['Bulk Deals']
+
+        max_rows = worksheet.max_row
+        st_row = 1
+        st_col = 1
+        for row_cells in worksheet.iter_rows(min_row=1, max_row=max_rows):
+            for cell in row_cells:
+                worksheet.cell(st_row, st_col).border = srgh.thin_border
+                if 'Bulk Deals' in str(cell.value):
+                    worksheet.merge_cells(start_row=st_row, start_column=st_col, end_row=st_row, end_column=st_col + 5)
+                    worksheet.cell(st_row, st_col).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    worksheet.cell(st_row, st_col).font = srgh.font_header
+                    worksheet.cell(st_row, st_col).alignment = srgh.align_header
+                    break
+                elif str(cell.value) in cust_header:
+                    worksheet.cell(st_row, st_col).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    worksheet.cell(st_row, st_col).font = srgh.font_header
+                    worksheet.cell(st_row, st_col).alignment = srgh.align_header
+                    st_col = st_col + 1
+
+                else:
+                    worksheet.cell(st_row, st_col).font = srgh.font_body
+                    if st_row % 2 == 1:
+                        cell.fill = PatternFill(start_color="f7ec8f", fill_type="solid")
+                    else:
+                        cell.fill = PatternFill(start_color="edead7", fill_type="solid")
+
+                    if type(cell.value) == str:
+                        worksheet.cell(st_row, st_col).alignment = srgh.align_body_str
+                    else:
+                        worksheet.cell(st_row, st_col).alignment = srgh.align_body_num
+                    st_col = st_col + 1
+            st_col = 1
+            st_row = st_row + 1
+            worksheet.row_dimensions[st_row].height = 20  # In pixels
+
+            worksheet.column_dimensions['A'].width = 15
+            worksheet.column_dimensions['B'].width = 35
+            worksheet.column_dimensions['C'].width = 40
+            worksheet.column_dimensions['D'].width = 10
+            worksheet.column_dimensions['E'].width = 20
+            worksheet.column_dimensions['F'].width = 30
+        writer.save()
+
+    def generate_block_deal_records(self, report_name):
+
+        # Read the Price File
+        try:
+            block_deals = pd.read_csv(self.config.block_file_name)
+        except FileNotFoundError:
+            print("Block Deals: file not found")
+            return
+
+        block_deals = block_deals[['Symbol', 'Security Name', 'Client Name', 'Buy/Sell', 'Quantity Traded',
+                                   'Trade Price / Wght. Avg. Price']]
+
+        narration1 = pd.DataFrame({'Symbol': 'Block Deals', 'Security Name': ' ', 'Client Name': '',
+                                   'Buy/Sell': '', 'Quantity Traded': '', 'Trade Price / Wght. Avg. Price': ''},
+                                  index=[0])
+
+        cust_header = pd.DataFrame({'Symbol': 'Symbol', 'Security Name': 'Security Name', 'Client Name': 'Client Name',
+                                    'Buy/Sell': 'Buy/Sell', 'Quantity Traded': 'Quantity Traded',
+                                    'Trade Price / Wght. Avg. Price': 'Trade Price / Wght. Avg. Price'}, index=[0])
+
+        # Append Data Frame when Price Increased and Volume Increased
+        narration1 = narration1.append(cust_header)
+        selected_list = narration1.append(block_deals, sort=False)
+
+        book = load_workbook(report_name)
+        writer = pd.ExcelWriter(report_name, engine='openpyxl')
+        writer.book = book
+        writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
+        selected_list.to_excel(writer, "Block Deals", header=None, index=False)
+
+        # Get the openpyxl workbook and worksheet objects.
+        worksheet = writer.sheets['Block Deals']
+
+        max_rows = worksheet.max_row
+        st_row = 1
+        st_col = 1
+        for row_cells in worksheet.iter_rows(min_row=1, max_row=max_rows):
+            for cell in row_cells:
+                worksheet.cell(st_row, st_col).border = srgh.thin_border
+                if 'Block Deals' in str(cell.value):
+                    worksheet.merge_cells(start_row=st_row, start_column=st_col, end_row=st_row, end_column=st_col + 5)
+                    worksheet.cell(st_row, st_col).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    worksheet.cell(st_row, st_col).font = srgh.font_header
+                    worksheet.cell(st_row, st_col).alignment = srgh.align_header
+                    break
+                elif str(cell.value) in cust_header:
+                    worksheet.cell(st_row, st_col).fill = PatternFill(start_color='D3D3D3', fill_type="solid")
+                    worksheet.cell(st_row, st_col).font = srgh.font_header
+                    worksheet.cell(st_row, st_col).alignment = srgh.align_header
+                    st_col = st_col + 1
+
+                else:
+                    worksheet.cell(st_row, st_col).font = srgh.font_body
+                    if st_row % 2 == 1:
+                        cell.fill = PatternFill(start_color="f7ec8f", fill_type="solid")
+                    else:
+                        cell.fill = PatternFill(start_color="edead7", fill_type="solid")
+
+                    if type(cell.value) == str:
+                        worksheet.cell(st_row, st_col).alignment = srgh.align_body_str
+                    else:
+                        worksheet.cell(st_row, st_col).alignment = srgh.align_body_num
+                    st_col = st_col + 1
+            st_col = 1
+            st_row = st_row + 1
+            worksheet.row_dimensions[st_row].height = 20  # In pixels
+
+            worksheet.column_dimensions['A'].width = 15
+            worksheet.column_dimensions['B'].width = 35
+            worksheet.column_dimensions['C'].width = 40
+            worksheet.column_dimensions['D'].width = 10
+            worksheet.column_dimensions['E'].width = 20
+            worksheet.column_dimensions['F'].width = 30
+        writer.save()

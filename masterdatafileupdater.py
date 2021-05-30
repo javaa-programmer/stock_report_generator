@@ -23,7 +23,11 @@ class MasterDataFileUpdater:
         input_file_name = self.config.input_file_path + 'Pd' + self.current_date + '.csv'
 
         # Read the Price File
-        scrip_details = pd.read_csv(input_file_name)
+        try:
+            scrip_details = pd.read_csv(input_file_name)
+        except FileNotFoundError:
+            print("Master Data File Update: File Not found")
+            return
 
         nifty_details = scrip_details[scrip_details['SECURITY'] == 'Nifty 50'].copy(deep=True)
         nifty_details.rename(columns={'SECURITY': 'NAME'}, inplace=True)

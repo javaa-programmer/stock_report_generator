@@ -317,3 +317,9 @@ trendies_2_header = {'High.1': 'High Price', 'Low.1': 'Low Price',
                      'High.4': 'High Price', 'Low.4': 'Low Price',
                      'CLOSE_PRICE': 'Closing Price'
                      }
+
+ca_header_updated = {'SYMBOL': 'SYMBOL', 'SECURITY': 'NAME', 'PURPOSE': 'PURPOSE', 'RECORD_DT': 'RECORD_DT',
+                     'EX_DT': 'EX_DT'}
+
+ca_header_updated_1 = {'SYMBOL': 'Symbol', 'Name': 'Name', 'Purpose': 'Purpose', 'Record Date': 'Record Date',
+                     'Ex Date': 'Ex Date'}
