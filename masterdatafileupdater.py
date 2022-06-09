@@ -23,7 +23,11 @@ class MasterDataFileUpdater:
         input_file_name = self.config.input_file_path + 'Pd' + self.current_date + '.csv'
 
         # Read the Price File
-        scrip_details = pd.read_csv(input_file_name)
+        try:
+            scrip_details = pd.read_csv(input_file_name)
+        except FileNotFoundError:
+            print("Master Data File Update: File Not found")
+            return
 
         nifty_details = scrip_details[scrip_details['SECURITY'] == 'Nifty 50'].copy(deep=True)
         nifty_details.rename(columns={'SECURITY': 'NAME'}, inplace=True)
@@ -37,7 +41,7 @@ class MasterDataFileUpdater:
 
         # Prepare the list for Selected List
         selected_list = pd.merge(scrip_list, scrip_details, left_on=["SYMBOL", "SERIES"], right_on=["SYMBOL", "SERIES"])
-
+        #  selected_list = selected_list.sort_values("SYMBOL")
         # Fetch the fields to be updated in master file
         selected_fields = selected_list[['SYMBOL', 'NAME', 'SERIES', 'HI_52_WK', 'LO_52_WK', 'PREV_CL_PR', 'OPEN_PRICE',
                                      'HIGH_PRICE', 'LOW_PRICE', 'CLOSE_PRICE', 'NET_TRDQTY']]
