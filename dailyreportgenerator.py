@@ -686,12 +686,12 @@ class DailyReportGenerator:
         DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, False, True,
                                                                  'Scrips closed above last week high price')
         DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, True, False,
-                                                                 'Scrips closed below last month and last week high '
+                                                                 'Scrips closed below last month and last week low '
                                                                  'price')
         DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, False, True, False,
-                                                                 'Scrips closed below last month high price')
+                                                                 'Scrips closed below last month low price')
         DailyReportGenerator.report_closed_above_month_week_high(self, merge_list, report_name, True, False, False,
-                                                                 'Scrips closed below last week high price')
+                                                                 'Scrips closed below last week low price')
 
     def report_closed_above_month_week_high(self, merge_list, report_name, last_week, last_month, increased,
                                             header_msg):
@@ -724,13 +724,13 @@ class DailyReportGenerator:
                 return initial_list[(initial_list['High.3'] <= initial_list['CLOSE_PRICE'])]
         else:
             if last_month and last_week:
-                temp_list = initial_list[(initial_list['High.1'] > initial_list['CLOSE_PRICE'])]
-                temp_list = temp_list[(temp_list['High.3'] > temp_list['CLOSE_PRICE'])]
+                temp_list = initial_list[(initial_list['Low.1'] > initial_list['CLOSE_PRICE'])]
+                temp_list = temp_list[(temp_list['Low.3'] > temp_list['CLOSE_PRICE'])]
                 return temp_list
             if last_month:
-                return initial_list[(initial_list['High.1'] > initial_list['CLOSE_PRICE'])]
+                return initial_list[(initial_list['Low.1'] > initial_list['CLOSE_PRICE'])]
             if last_week:
-                return initial_list[(initial_list['High.3'] > initial_list['CLOSE_PRICE'])]
+                return initial_list[(initial_list['Low.3'] > initial_list['CLOSE_PRICE'])]
 
     # Create trending technical 1 sheet
     def create_trending_technical_2_sheet(self, report_name, sheet_name, temp_df, header_msg):

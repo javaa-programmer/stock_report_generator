@@ -41,7 +41,7 @@ class MasterDataFileUpdater:
 
         # Prepare the list for Selected List
         selected_list = pd.merge(scrip_list, scrip_details, left_on=["SYMBOL", "SERIES"], right_on=["SYMBOL", "SERIES"])
-
+        #  selected_list = selected_list.sort_values("SYMBOL")
         # Fetch the fields to be updated in master file
         selected_fields = selected_list[['SYMBOL', 'NAME', 'SERIES', 'HI_52_WK', 'LO_52_WK', 'PREV_CL_PR', 'OPEN_PRICE',
                                      'HIGH_PRICE', 'LOW_PRICE', 'CLOSE_PRICE', 'NET_TRDQTY']]
