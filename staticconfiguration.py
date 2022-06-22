@@ -14,8 +14,3 @@ class StaticConfiguration:
         self.App_Process_Calendar_file = self.other_file_path + configs.get("App_Process_Calendar_file").data
         self.daily_report_name = configs.get("daily_report_name").data
         self.sheet_name_price_volume = configs.get("sheet_name_price_volume").data
-        self.financial_year = configs.get("financial_year").data
-        self.is_last_day_year = configs.get("is_last_day_year").data
-        self.is_first_day_year = configs.get("is_first_day_year").data
-        self.is_last_day_fin_year = configs.get("is_last_day_fin_year").data
-        self.is_first_day_fin_year = configs.get("is_first_day_fin_year").data

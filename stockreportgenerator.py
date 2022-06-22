@@ -59,7 +59,7 @@ start_time = time.time()
 
 current_date = srgh.get_current_date()
 sc = load_config()
-from_date = srgh.create_date(current_date) - timedelta(days=90)
+from_date = srgh.create_date(current_date) - timedelta(days=45)
 
 # Check if the run date is holiday or not
 is_holiday = srgh.check_holiday(srgh.create_date(current_date), sc)
@@ -71,21 +71,24 @@ if not is_holiday:
     file_available = prepare_file()
 
     if file_available:
-        # Set the flags and Unzip the file, copy to input directory
-        # and delete the unused files.
-        # srgh.set_app_process_flags(srgh.create_date(current_date), sc)
 
+        data_start_time = time.time()
         # Update the master data excel
         mdfu = MasterDataFileUpdater(sc.master_data_file_name, 'Details', current_date, sc)
         mdfu.update_master_data()
+        print(f'Data file update complete. Time taken {time.time() - data_start_time} secs')
 
         # update the master report
+        mr_start_time = time.time()
         mru = MasterReportUpdater(sc.master_data_file_name, 'Details', current_date, from_date.date(), sc)
         mru.update_master_report()
+        print(f'Master report update complete. Time taken {time.time() - mr_start_time} secs')
 
         # Generate Daily Reports
+        dr_start_time = time.time()
         drg = DailyReportGenerator(sc.master_data_file_name, 'Details', current_date, sc)
         drg.generate_daily_reports()
+        print(f'Daily report generation complete. Time taken {time.time() - dr_start_time} secs')
 
         # Generate Weekly Reports
         # generate_weekly_reports()

@@ -24,7 +24,7 @@ class MasterReportUpdater:
     def reshape_header(self, selected_list, excel_path, sheet_name):
 
         book = load_workbook(excel_path)
-        writer = pd.ExcelWriter(excel_path, engine='openpyxl')
+        writer = pd.ExcelWriter(excel_path, engine='openpyxl', mode='a', if_sheet_exists='overlay')
         writer.book = book
         writer.sheets = dict((ws.title, ws) for ws in book.worksheets)
         # selected_list.to_excel(writer, sheet_name, header=None, index=False)
@@ -142,11 +142,11 @@ class MasterReportUpdater:
         curr_week_data = curr_week_data[(curr_week_data['TRADE_DATE'] > pd.to_datetime(self.from_date))
                              & (curr_week_data['TRADE_DATE'] <= pd.to_datetime(self.current_date.date()))]
 
-        updated_month = pd.Series([])
-        updated_year = pd.Series([])
-        updated_week = pd.Series([])
-        key_week_year = pd.Series([])
-        key_month_year = pd.Series([])
+        updated_month = pd.Series([], dtype='float64')
+        updated_year = pd.Series([], dtype='float64')
+        updated_week = pd.Series([], dtype='float64')
+        key_week_year = pd.Series([], dtype='float64')
+        key_month_year = pd.Series([], dtype='float64')
 
         for index, row in curr_week_data.iterrows():
             trade_date = row['TRADE_DATE']
@@ -168,27 +168,29 @@ class MasterReportUpdater:
     # Calculate the weekly High, Low and Monthly High and Low for new sheet.
     # If sheet already exist for any month, do nothing
     def calculate_month_weekly_high_low(self, df_scrip_list, current_date):
+        todays_scrip_list = df_scrip_list[(df_scrip_list['TRADE_DATE']) == current_date]
+
         sheet_exists = srgh.check_sheet_exist(self.config.master_report_name, srgh.create_sheet_name(self.current_date_str))
         if sheet_exists:
             return
 
         # Calculate Weekly High Price
-        weekly_high_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'WEEK', 'YEAR'])["HIGH_PRICE"].idxmax()]
-        selected_fields_weekly_high = weekly_high_price[['SYMBOL', 'SERIES', 'WEEK', 'YEAR', 'HIGH_PRICE']]
+        # weekly_high_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'WEEK', 'YEAR'])["HIGH_PRICE"].idxmax()]
+        # weekly_high_price.to_excel("weekly_high_price.xlsx")
+
+        todays_scrip_list = todays_scrip_list[['SYMBOL', 'SERIES', 'WEEK', 'YEAR', 'HIGH_PRICE', 'LOW_PRICE', 'MONTH']]
 
         week_max_price = df_scrip_list.groupby('KEY_WEEK_HIGH').max()
         last_week_high_price = {}
 
         # Calculate Weekly Low Price
-        weekly_low_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'WEEK', 'YEAR'])["LOW_PRICE"].idxmin()]
-        selected_fields_weekly_low = weekly_low_price[['SYMBOL', 'SERIES', 'WEEK', 'YEAR', 'LOW_PRICE']]
 
         week_min_price = df_scrip_list.groupby('KEY_WEEK_HIGH').min()
         last_week_low_price = {}
 
         temp_hp = 0
         temp_lp = 0
-        for index, row in selected_fields_weekly_high.iterrows():
+        for index, row in todays_scrip_list.iterrows():
             if row.WEEK == 1:
                 temp_week_high_price = week_max_price[(week_max_price['SYMBOL'] == row.SYMBOL)
                                                  & (week_max_price['WEEK'] == 52)
@@ -215,33 +217,33 @@ class MasterReportUpdater:
             try:
                 temp_lp = temp_week_low_price['LOW_PRICE'].values[0]
             except IndexError:
-                temp_lp = 0
+                 temp_lp = 0
 
             key = row.SYMBOL + str(row.WEEK) + str(row.YEAR)
             last_week_high_price.update({key: temp_hp})
             last_week_low_price.update({key: temp_lp})
 
-        for index, row in selected_fields_weekly_high.iterrows():
+        for index, row in todays_scrip_list.iterrows():
             key = row.SYMBOL + str(row.WEEK) + str(row.YEAR)
-            selected_fields_weekly_high.loc[index, 'LAST_WEEK_HIGH_PRICE'] = last_week_high_price.get(key)
-            selected_fields_weekly_low.loc[index, 'LAST_WEEK_LOW_PRICE'] = last_week_low_price.get(key)
+            todays_scrip_list.loc[index, 'LAST_WEEK_HIGH_PRICE'] = last_week_high_price.get(key)
+            todays_scrip_list.loc[index, 'LAST_WEEK_LOW_PRICE'] = last_week_low_price.get(key)
 
-        updated_record_set_weekly_high = pd.merge(df_scrip_list, selected_fields_weekly_high,
-                                              on=['SYMBOL', 'SERIES', 'WEEK', 'YEAR'])
+        updated_record_set_weekly_high_low = pd.merge(df_scrip_list, todays_scrip_list,
+                                              on=['SYMBOL', 'SERIES', 'WEEK', 'YEAR','MONTH'])
 
-        updated_record_set_weekly_high_low = pd.merge(updated_record_set_weekly_high, selected_fields_weekly_low,
-                                                  on=['SYMBOL', 'SERIES', 'WEEK', 'YEAR'])
+        #updated_record_set_weekly_high_low = pd.merge(updated_record_set_weekly_high, selected_fields_weekly_low,
+        #                                          on=['SYMBOL', 'SERIES', 'WEEK', 'YEAR'])
 
         # Calculate Monthly High Price
-        monthly_high_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'MONTH', 'YEAR'])["HIGH_PRICE"].idxmax()]
-        selected_fields_monthly_high = monthly_high_price[['SYMBOL', 'SERIES', 'MONTH', 'YEAR', 'HIGH_PRICE']]
+        #monthly_high_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'MONTH', 'YEAR'])["HIGH_PRICE"].idxmax()]
+        #selected_fields_monthly_high = monthly_high_price[['SYMBOL', 'SERIES', 'MONTH', 'YEAR', 'HIGH_PRICE']]
 
         mo_max_price = df_scrip_list.groupby('KEY_MONTH_HIGH').max()
         last_mo_hp = {}
 
         # Calculate Monthly Low Price
-        monthly_low_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'MONTH', 'YEAR'])["LOW_PRICE"].idxmin()]
-        selected_fields_monthly_low = monthly_high_price[['SYMBOL', 'SERIES', 'MONTH', 'YEAR', 'LOW_PRICE']]
+        # monthly_low_price = df_scrip_list.loc[df_scrip_list.groupby(['SYMBOL', 'MONTH', 'YEAR'])["LOW_PRICE"].idxmin()]
+        # selected_fields_monthly_low = monthly_high_price[['SYMBOL', 'SERIES', 'MONTH', 'YEAR', 'LOW_PRICE']]
 
         # last_month_low_price
         mo_min_price = df_scrip_list.groupby('KEY_MONTH_HIGH').min()
@@ -249,7 +251,7 @@ class MasterReportUpdater:
 
         mo_hp = 0
         mo_lp = 0
-        for index, row in selected_fields_monthly_high.iterrows():
+        for index, row in todays_scrip_list.iterrows():
             if row.MONTH == 1:
                 temp_mo_high_price = mo_max_price[(mo_max_price['SYMBOL'] == row.SYMBOL)
                                                  & (mo_max_price['MONTH'] == 12)
@@ -282,30 +284,31 @@ class MasterReportUpdater:
             last_mo_hp.update({key: mo_hp})
             last_mo_lp.update({key: mo_lp})
 
-        for index, row in selected_fields_monthly_high.iterrows():
+        for index, row in todays_scrip_list.iterrows():
             key = row.SYMBOL + str(row.MONTH) + str(row.YEAR)
-            selected_fields_monthly_high.loc[index, 'LAST_MO_HIGH_PRICE'] = last_mo_hp.get(key)
-            selected_fields_monthly_low.loc[index, 'LAST_MO_LOW_PRICE'] = last_mo_lp.get(key)
+            todays_scrip_list.loc[index, 'LAST_MO_HIGH_PRICE'] = last_mo_hp.get(key)
+            todays_scrip_list.loc[index, 'LAST_MO_LOW_PRICE'] = last_mo_lp.get(key)
 
-        updated_record_set_monthly_high = pd.merge(updated_record_set_weekly_high_low, selected_fields_monthly_high,
-                                               on=['SYMBOL', 'SERIES', 'MONTH', 'YEAR'])
+        updated_record_set_weekly_high_low = pd.merge(updated_record_set_weekly_high_low, todays_scrip_list,
+                                                      on=['SYMBOL', 'SERIES', 'MONTH', 'YEAR'])
 
-        updated_record_set_monthly_high_low = pd.merge(updated_record_set_monthly_high, selected_fields_monthly_low,
-                                                   on=['SYMBOL', 'SERIES', 'MONTH', 'YEAR'])
+        # updated_record_set_monthly_high_low = pd.merge(updated_record_set_monthly_high, selected_fields_monthly_low,
+        #                                           on=['SYMBOL', 'SERIES', 'MONTH', 'YEAR'])
+
+        updated_record_set_weekly_high_low.rename(columns={'HIGH_PRICE': 'MO_HIGH_PRICE', 'HIGH_PRICE_x': 'HIGH_PRICE',
+                                                           'HIGH_PRICE_y': 'WE_HIGH_PRICE'}, inplace=True)
 
 
-        updated_record_set_monthly_high_low.rename(columns={'HIGH_PRICE': 'MO_HIGH_PRICE', 'HIGH_PRICE_x': 'HIGH_PRICE',
-                                                        'HIGH_PRICE_y': 'WE_HIGH_PRICE'}, inplace=True)
-
-        updated_record_set_monthly_high_low.rename(columns={'LOW_PRICE': 'MO_LOW_PRICE', 'LOW_PRICE_x': 'LOW_PRICE',
+        updated_record_set_weekly_high_low.rename(columns={'LOW_PRICE': 'MO_LOW_PRICE', 'LOW_PRICE_x': 'LOW_PRICE',
                                                         'LOW_PRICE_y': 'WE_LOW_PRICE'}, inplace=True)
 
-        final_updated_records = updated_record_set_monthly_high_low[updated_record_set_monthly_high_low['TRADE_DATE']
+        final_updated_records = updated_record_set_weekly_high_low[updated_record_set_weekly_high_low['TRADE_DATE']
                                                                 == current_date]
 
+        final_updated_records.to_excel("final_updated_records.xlsx")
         fl_record_set = final_updated_records[['SYMBOL', 'NAME', 'HI_52_WK', 'LO_52_WK', 'LAST_MO_HIGH_PRICE',
                                            'LAST_MO_LOW_PRICE', 'MO_HIGH_PRICE', 'MO_LOW_PRICE',
-                                           'LAST_WEEK_HIGH_PRICE', 'LAST_WEEK_LOW_PRICE', 'WE_HIGH_PRICE',
+                                           'LAST_WEEK_HIGH_PRICE_x', 'LAST_WEEK_LOW_PRICE_x', 'WE_HIGH_PRICE',
                                            'WE_LOW_PRICE']]
 
         return fl_record_set

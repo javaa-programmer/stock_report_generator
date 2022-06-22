@@ -14,7 +14,7 @@ month_name = {"01": "JAN", "02": "FEB", "03": "MAR", "04": "APR", "05": "MAY", "
 
 header1 = {'SYMBOL': 'Scrip Details', 'NAME': ' ', 'HI_52_WK_x': '52 Week', 'LO_52_WK_x': ' ',
            'LAST_MO_HIGH_PRICE': 'Last Month', 'LAST_MO_LOW_PRICE': ' ', 'MO_HIGH_PRICE': 'Current Month',
-           'MO_LOW_PRICE': ' ', 'LAST_WEEK_HIGH_PRICE': 'Last Week', 'LAST_WEEK_LOW_PRICE': ' ',
+           'MO_LOW_PRICE': ' ', 'LAST_WEEK_HIGH_PRICE_x': 'Last Week', 'LAST_WEEK_LOW_PRICE': ' ',
            'WE_HIGH_PRICE': 'Current Week', 'WE_LOW_PRICE': ' '}
 
 existing_header = {'SYMBOL': 'Scrip Details', 'High': '52 Week ', 'High.1': 'Last Month',
@@ -153,7 +153,7 @@ def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
     if 'engine' in to_excel_kwargs:
         to_excel_kwargs.pop('engine')
 
-    writer = pd.ExcelWriter(filename, engine='openpyxl')
+    writer = pd.ExcelWriter(filename, engine='openpyxl', mode='a', if_sheet_exists='overlay')
 
     # Python 2.x: define [FileNotFoundError] exception if it doesn't exist
     try:
@@ -207,28 +207,6 @@ red_color = 'F6646B'
 green_color = 'CAFF33'
 red_fill = styles.PatternFill(start_color=red_color, end_color=red_color, fill_type='solid')
 green_fill = styles.PatternFill(start_color=green_color, end_color=green_color, fill_type='solid')
-
-
-# Sets the important dates and other configuration required to
-# generate the reports. The input is App_Process_Calendar.xlsx file
-def set_app_process_flags(current_date, config):
-    df = pd.read_excel(config.App_Process_Calendar_file, 0)
-    process_calendar = {}
-    for index, row in df.iterrows():
-        key = row.Process_Type
-        process_calendar.update({key: row.Date.date()})
-    config.is_last_day_year = (process_calendar.get("LAST_BIZ_DAY_YEAR") == current_date.date())
-    config.is_first_day_year = (process_calendar.get("FIRST_BIZ_DAY_YEAR") == current_date.date())
-    config.is_last_day_fin_year = (process_calendar.get("LAST_BIZ_DAY_OF_FIN_YEAR") == current_date.date())
-    config.is_first_day_fin_year = (process_calendar.get("FIRST_BIZ_DAY_OF_FIN_YEAR") == current_date.date())
-
-    df = pd.read_excel(config.App_Process_Calendar_file, 1)
-    important_configuration = {}
-    for index, row in df.iterrows():
-        key = row.Key
-        important_configuration.update({key: row.Value})
-
-    config.financial_year = important_configuration.get("FINANCIAL_YEAR")
 
 
 # Check if a given date is holiday or not

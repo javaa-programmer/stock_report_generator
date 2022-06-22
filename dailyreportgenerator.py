@@ -393,23 +393,26 @@ class DailyReportGenerator:
                                   index=[0])
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration1 = narration1.append(cust_header)
-        price_incr_vol_incr = narration1.append(price_incr_vol_incr, sort=False)
+        narration1 = pd.concat([narration1, cust_header])
+        price_incr_vol_incr = pd.concat([narration1, price_incr_vol_incr], sort=False)
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration2 = narration2.append(cust_header)
-        price_incr_vol_decr = narration2.append(price_incr_vol_decr, sort=False)
-        price_incr_vol_incr = price_incr_vol_incr.append(price_incr_vol_decr, sort=False)
+        narration2 = pd.concat([narration2, cust_header])
+
+        price_incr_vol_decr = pd.concat([narration2, price_incr_vol_decr], sort=False)
+        price_incr_vol_incr = pd.concat([price_incr_vol_incr, price_incr_vol_decr], sort=False)
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration3 = narration3.append(cust_header)
-        price_decr_vol_incr = narration3.append(price_decr_vol_incr, sort=False)
-        price_incr_vol_incr = price_incr_vol_incr.append(price_decr_vol_incr, sort=False)
+        narration3 = pd.concat([narration3, cust_header])
+
+        price_decr_vol_incr = pd.concat([narration3, price_decr_vol_incr], sort=False)
+        price_incr_vol_incr = pd.concat([price_incr_vol_incr, price_decr_vol_incr], sort=False)
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration4 = narration4.append(cust_header)
-        price_decr_vol_decr = narration4.append(price_decr_vol_decr, sort=False)
-        price_incr_vol_incr = price_incr_vol_incr.append(price_decr_vol_decr, sort=False)
+        narration4 = pd.concat([narration4, cust_header])
+
+        price_decr_vol_decr = pd.concat([narration4, price_decr_vol_decr], sort=False)
+        price_incr_vol_incr = pd.concat([price_incr_vol_incr, price_decr_vol_decr], sort=False)
 
         price_incr_vol_incr = price_incr_vol_incr[['SYMBOL', 'NAME', 'PREV_CL_PR', 'CLOSE_PRICE', 'Change', 'Change(%)',
                                                    'PREV_VOL', 'NET_TRDQTY', 'Volume Change', 'Volume Change(%)']]\
@@ -516,23 +519,23 @@ class DailyReportGenerator:
                                   index=[0])
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration1 = narration1.append(cust_header)
-        new_52_week_high = narration1.append(new_52_week_high, sort=False)
+        narration1 = pd.concat([narration1, cust_header])
+        new_52_week_high = pd.concat([narration1, new_52_week_high], sort=False)
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration2 = narration2.append(cust_header)
-        new_52_week_low = narration2.append(new_52_week_low, sort=False)
-        new_52_week_high = new_52_week_high.append(new_52_week_low, sort=False)
+        narration2 = pd.concat([narration2, cust_header])
+        new_52_week_low = pd.concat([narration2, new_52_week_low], sort=False)
+        new_52_week_high = pd.concat([new_52_week_high, new_52_week_low], sort=False)
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration3 = narration3.append(cust_header)
-        close_52_week_high = narration3.append(close_52_week_high, sort=False)
-        new_52_week_high = new_52_week_high.append(close_52_week_high, sort=False)
+        narration3 = pd.concat([narration3, cust_header])
+        close_52_week_high = pd.concat([narration3, close_52_week_high], sort=False)
+        new_52_week_high = pd.concat([new_52_week_high, close_52_week_high], sort=False)
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration4 = narration4.append(cust_header)
-        close_52_week_low = narration4.append(close_52_week_low, sort=False)
-        new_52_week_high = new_52_week_high.append(close_52_week_low, sort=False)
+        narration4 = pd.concat([narration4, cust_header])
+        close_52_week_low = pd.concat([narration4, close_52_week_low], sort=False)
+        new_52_week_high = pd.concat([new_52_week_high, close_52_week_low], sort=False)
 
         book = load_workbook(report_name)
         writer = pd.ExcelWriter(report_name, engine='openpyxl')
@@ -935,12 +938,12 @@ class DailyReportGenerator:
                                 'RECORD_DT': 'Record Date', 'EX_DT': 'Ex Date'}, index=[0])
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration1 = narration1.append(cust_header)
-        selected_list = narration1.append(selected_list, sort=False)
+        narration1 = pd.concat([narration1, cust_header])
+        selected_list = pd.concat([narration1, selected_list], sort=False)
 
-        narration2 = narration2.append(cust_header)
-        all_ca_list = narration2.append(all_ca_list, sort=False)
-        selected_list = selected_list.append(all_ca_list, sort=False)
+        narration2 = pd.concat([narration2, cust_header])
+        all_ca_list = pd.concat([narration2, all_ca_list], sort=False)
+        selected_list = pd.concat([selected_list, all_ca_list], sort=False)
 
         book = load_workbook(report_name)
         writer = pd.ExcelWriter(report_name, engine='openpyxl')
@@ -1025,12 +1028,12 @@ class DailyReportGenerator:
                                     'Trade Price / Wght. Avg. Price': 'Trade Price / Wght. Avg. Price'}, index=[0])
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration1 = narration1.append(cust_header)
-        selected_list = narration1.append(selected_list, sort=False)
+        narration1 = pd.concat([narration1, cust_header])
+        selected_list = pd.concat([narration1, selected_list], sort=False)
 
-        narration2 = narration2.append(cust_header)
-        all_bulk_deals = narration2.append(all_bulk_deals, sort=False)
-        selected_list = selected_list.append(all_bulk_deals, sort=False)
+        narration2 = pd.concat([narration2, cust_header])
+        all_bulk_deals = pd.concat([narration2, all_bulk_deals], sort=False)
+        selected_list = pd.concat([selected_list, all_bulk_deals], sort=False)
 
         book = load_workbook(report_name)
         writer = pd.ExcelWriter(report_name, engine='openpyxl')
@@ -1104,8 +1107,8 @@ class DailyReportGenerator:
                                     'Trade Price / Wght. Avg. Price': 'Trade Price / Wght. Avg. Price'}, index=[0])
 
         # Append Data Frame when Price Increased and Volume Increased
-        narration1 = narration1.append(cust_header)
-        selected_list = narration1.append(block_deals, sort=False)
+        narration1 = pd.concat([narration1, cust_header])
+        selected_list = pd.concat([narration1, block_deals], sort=False)
 
         book = load_workbook(report_name)
         writer = pd.ExcelWriter(report_name, engine='openpyxl')
