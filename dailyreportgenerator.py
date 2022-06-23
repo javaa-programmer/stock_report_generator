@@ -1,8 +1,9 @@
 import pandas as pd
+from pandas.errors import EmptyDataError
+
 import stockreportgeneratorhelper as srgh
 from openpyxl.styles import PatternFill
 from openpyxl import load_workbook
-import numpy as np
 from datetime import timedelta
 
 
@@ -913,6 +914,9 @@ class DailyReportGenerator:
             ca_details = pd.read_csv(input_file_name)
         except FileNotFoundError:
             print("Corporate Actions: file not found")
+            return
+        except EmptyDataError:
+            print("There are no corporate actions today")
             return
 
         # Read the Scrip List

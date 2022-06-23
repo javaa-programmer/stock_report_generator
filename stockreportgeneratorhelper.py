@@ -4,6 +4,7 @@ import pandas as pd
 from openpyxl.styles import Alignment, Font
 from openpyxl.styles.borders import BORDER_THIN
 from openpyxl.styles import Border, Side
+import sys
 import staticconfiguration as sc
 from staticconfiguration import StaticConfiguration
 
@@ -84,7 +85,8 @@ green_fill = styles.PatternFill(start_color=green_color, end_color=green_color, 
 
 # get the current date from user input
 def get_current_date():
-    current_date = input("Enter Date: ")
+    print('Please enter the date: ')
+    current_date = sys.stdin.readline().strip('\n')
     return current_date
 
 
