@@ -4,7 +4,6 @@ from masterreportupdater import MasterReportUpdater
 import stockreportgeneratorhelper as srgh
 from dailyreportgenerator import DailyReportGenerator
 from zipfile import ZipFile
-import shutil
 import os
 from jproperties import Properties
 from staticconfiguration import StaticConfiguration
@@ -49,7 +48,7 @@ configs = Properties()
 
 
 def load_config():
-    with open("D:\\personal\\trading\\others\\application_config.properties", 'rb') as config_file:
+    with open("D:\\personal\\stock-market\\others\\application_config.properties", 'rb') as config_file:
         configs.load(config_file)
     sc = StaticConfiguration(configs)
     return sc
@@ -88,7 +87,7 @@ if not is_holiday:
         dr_start_time = time.time()
         drg = DailyReportGenerator(sc.master_data_file_name, 'Details', current_date, sc)
         drg.generate_daily_reports()
-        print(f'Daily report generation complete. Time taken {time.time() - dr_start_time} secs')
+        print(f'Daily report generation is complete. Time taken {time.time() - dr_start_time} secs')
 
         # Generate Weekly Reports
         # generate_weekly_reports()
@@ -99,7 +98,7 @@ if not is_holiday:
         print("File not found for Generating Report")
 
 else:
-    print(f'{srgh.create_date(current_date).date()} is Holiday and Market is Closed')
+    print(f'{srgh.create_date(current_date).date()} + is Holiday and Market is Closed')
 
 delete_files()
 
